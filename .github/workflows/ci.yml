@@ -17,6 +17,29 @@ jobs:
     name: Lint, types, tests, build, size
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    # A throwaway PostgreSQL for the database tests. Same major version as infra/docker-compose.yml,
+    # pinned by digest. Every password here is CI-only, for a database that lives for one run.
+    services:
+      postgres:
+        image: postgres:17.11-alpine@sha256:3540c0362c809df084ffac0ae69fe794515f9de92692f02178bcdce0ef0302ac # 17.11-alpine
+        env:
+          POSTGRES_USER: ci_admin
+          POSTGRES_PASSWORD: ci-only-admin-not-a-secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U ci_admin -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: "5432"
+      DB_NAME: tummy_ci
+      DB_APP_USER: tummy_app
+      DB_APP_PASSWORD: ci-only-app-not-a-secret
+      DB_MIGRATOR_USER: tummy_migrator
+      DB_MIGRATOR_PASSWORD: ci-only-migrator-not-a-secret
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -27,6 +50,20 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Make the two database users and the database, then migrate from empty. If the database
+      # is missing, these steps fail, and so would the tests: database tests never skip.
+      - name: Create database users
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: "5432"
+          PGUSER: ci_admin
+          PGPASSWORD: ci-only-admin-not-a-secret
+        run: |
+          set -euo pipefail
+          command -v psql >/dev/null || { sudo apt-get update && sudo apt-get install -y postgresql-client; }
+          psql --version
+          bash infra/db/init-roles.sh
+      - run: pnpm db:migrate
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
@@ -37,6 +74,29 @@ jobs:
     name: End to end and accessibility (phone-sized screen)
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    # A throwaway PostgreSQL for the database tests. Same major version as infra/docker-compose.yml,
+    # pinned by digest. Every password here is CI-only, for a database that lives for one run.
+    services:
+      postgres:
+        image: postgres:17.11-alpine@sha256:3540c0362c809df084ffac0ae69fe794515f9de92692f02178bcdce0ef0302ac # 17.11-alpine
+        env:
+          POSTGRES_USER: ci_admin
+          POSTGRES_PASSWORD: ci-only-admin-not-a-secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U ci_admin -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: "5432"
+      DB_NAME: tummy_ci
+      DB_APP_USER: tummy_app
+      DB_APP_PASSWORD: ci-only-app-not-a-secret
+      DB_MIGRATOR_USER: tummy_migrator
+      DB_MIGRATOR_PASSWORD: ci-only-migrator-not-a-secret
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -47,6 +107,20 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Make the two database users and the database, then migrate from empty. If the database
+      # is missing, these steps fail, and so would the tests: database tests never skip.
+      - name: Create database users
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: "5432"
+          PGUSER: ci_admin
+          PGPASSWORD: ci-only-admin-not-a-secret
+        run: |
+          set -euo pipefail
+          command -v psql >/dev/null || { sudo apt-get update && sudo apt-get install -y postgresql-client; }
+          psql --version
+          bash infra/db/init-roles.sh
+      - run: pnpm db:migrate
       - run: pnpm --filter @tummy/web exec playwright install --with-deps chromium
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
