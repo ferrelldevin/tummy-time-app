@@ -15,7 +15,7 @@ Built by Dr. Ajay Gupta's Hands-On Lab at Old Dominion University for the client
 | Know why a technical choice was made | [docs/adr/](docs/adr/README.md) |
 | Know what data the app may store | [docs/data-map.md](docs/data-map.md) |
 | Know what could go wrong and what stops it | [docs/threat-model.md](docs/threat-model.md) |
-| Know the project background | [docs/knowledge/](docs/knowledge/) |
+| Know the writing rules, the definition of done and the glossary | [docs/knowledge/](docs/knowledge/) |
 
 ## Rules that never bend
 
