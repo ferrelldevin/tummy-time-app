@@ -2,7 +2,9 @@
 
 How to get a database, change it, back it up and put a backup back. Every command says where it runs. Commands are written for Git Bash on Windows, or any terminal on macOS and Linux, from the repo root unless the label says otherwise.
 
-What is in this page so far comes from Block 3 (database and API spine) and Block 4 (sign-in settings, section 10). Block 8 adds the server: deploys, scheduled backups, where backups are kept and who can reach them.
+Sections 1 to 11 come from Blocks 3, 4 and 7: a database and sign-in settings on your own machine. Sections 12 to 24 are Block 8: the server (deploys, rolling back, restoring, secrets, locking an account, logs, the daily jobs, who to call).
+
+**Read this first about sections 12 to 24.** They were written on a machine with no Docker, no server and no certificate. Nothing in them has been run on a server. Every procedure is marked either "practiced" or "NOT YET PRACTICED", and almost all are the second. The checklist in section 22 lists what to try first on the first real server. When a step here is wrong, fix this page in the same pull request that finds it.
 
 ## 1. The pieces
 
@@ -216,7 +218,7 @@ node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"
 **If the key is lost or changed, every family code made before stops working.** The codes are not stored, only a keyed hash of each, and the key is the other half. There is no way to work them out again. So on a real server:
 
 - The key is backed up separately from the database, by whoever holds the server's other secrets. A database backup without the key cannot sign anyone in. A key without the database is useless. Keeping them apart is the point.
-- Where it is kept and who can read it is decided in Block 8. Until then no real server exists.
+- Where it is kept and who can read it is still an open decision (section 17 says what is known). Until it is made, no real family data may go on a server.
 
 On your own machine, losing the key only costs your local test accounts: run `NODE_ENV=development pnpm db:reset`, then migrate and seed again.
 
@@ -237,3 +239,454 @@ for p in / /index.html /sw.js /manifest.webmanifest; do curl -sI "https://SERVER
 - Every one must carry the Content-Security-Policy line.
 - Set `TUMMY_BUILD_ID` to the commit when building, so a phone's version can be read from the page.
 - Keep the previous release's `/assets/` files for one release. A phone part-way through an update may still ask for one.
+
+## 12. The production server: what runs and what is reachable
+
+Status of this whole part of the page: **NOT YET PRACTICED.** Nothing here has run on a server.
+
+The production stack is `infra/docker-compose.prod.yml`. It is separate from the development file on purpose (see the comment at the top of that file). Everything in it runs in containers on one Linux machine.
+
+| Service | What it is | Reachable from outside the server? |
+|---|---|---|
+| `caddy` | The outer proxy. Ends HTTPS, gets and renews its own certificate by default, sends port 80 to port 443 | **Yes: ports 80 and 443. The only thing that is** |
+| `web` | nginx with the app's files and their caching and security headers | No |
+| `api` | The Fastify API. Connects to the database as the app user | No |
+| `db` | PostgreSQL 17 | No. Publishes no port. On a private network with no way out |
+| `migrate` | Runs the migrations as the migrator user, then exits. Only when `deploy.sh` asks | No |
+| `dbtools` | `psql`, `pg_dump` and `pg_restore` on the database's private network, for backup and restore scripts. Only on demand | No |
+
+Files on the server that are not in git, and why each matters:
+
+| File or folder | What it holds | Rule |
+|---|---|---|
+| `infra/.env` | Every secret and setting for this server | Mode 600, owned by the deploy user. Never in git, chat, a ticket or a log. `deploy.sh` refuses to run if it is open to others |
+| `infra/.deployed-version` | The version that is running now, one line | Written by `deploy.sh` only after a healthy start |
+| `BACKUP_DIR` (set in `.env`) | Database backups, readable by the deploy user only | Outside Docker's own storage. Holds every family's tummy logs in the clear: see section 20 |
+| Docker volume `tummy-time-prod_db-data` | The live database files | Not a backup. Never copy it as one |
+| Docker volume `tummy-time-prod_caddy-data` | The HTTPS certificate, its private key and Caddy's account with the certificate authority | Back up with the other secrets. Losing it means a new certificate, and certificate authorities limit how often they issue one |
+
+### How many proxies sit in front of the API
+
+**One** (Caddy), so `API_TRUST_PROXY_HOPS` is `1` in the compose file. The rate limiter (threat model #15b) is keyed on the address the API reads from that one hop. Too low and every visitor shares one limit; too high and a visitor can write their own address and escape it. Two ways to break it by accident: sending `/api/` through the `web` container's nginx (its own rule would replace the address with Caddy's), and putting another proxy in front of Caddy (ODU's, for example) without changing the number to 2 and telling Caddy to trust that proxy. `infra/Caddyfile` and the top of `infra/docker-compose.prod.yml` explain both.
+
+### Two shapes: a temporary test site and the ODU server
+
+- **Temporary test site (the default path).** A server we can reach off campus, with a real DNS name pointing at it, ports 80 and 443 open to the internet, and Caddy getting its own certificate. Sample data only. Set `SITE_BANNER=test` in `infra/.env` before deploying, so every screen says "Test site. Sample data." Devin approved temporary staging; the hosting provider is not chosen.
+- **The ODU server.** Different, and not yet known: who issues the certificate, whether ODU puts its own proxy in front, whether containers are allowed at all, who patches the machine, how backups work. The questions are in `docs/hosting-questions.md`. Until ODU IT answers, treat every line of this page that mentions ODU as a question, not a fact. `infra/Caddyfile` lists the two shapes we can already see.
+
+## 13. First-time server setup
+
+Status: **NOT YET PRACTICED.** The first person to do it fixes this page as they go.
+
+You need: a Linux server you may run Docker on; a DNS name that points at it; ports 80 and 443 open to the internet (the test-site path needs both for the certificate); and a user that is not root, here called `tummydeploy`. Anyone who can run Docker on a machine can read everything on it, so the `docker` group is as powerful as root: keep it to people who need it.
+
+1. Install Docker Engine and its Compose plugin from Docker's own instructions for your Linux. Also install `git` and `curl`.
+
+   Runs in: the server, as an administrator. Check:
+   ```bash
+   docker compose version && git --version && curl --version | head -n 1
+   ```
+2. Make the deploy user and let it run Docker.
+
+   Runs in: the server, as an administrator
+   ```bash
+   sudo adduser tummydeploy
+   sudo usermod -aG docker tummydeploy
+   ```
+3. Make the backup folder, outside Docker's storage.
+
+   Runs in: the server, as an administrator
+   ```bash
+   sudo mkdir -p /srv/tummy-backups
+   sudo chown tummydeploy:tummydeploy /srv/tummy-backups
+   sudo chmod 700 /srv/tummy-backups
+   ```
+   A different physical disk is better than the same one, and an encrypted copy somewhere else is better still. Neither is decided (section 20).
+4. Get the code.
+
+   Runs in: the server, as `tummydeploy`
+   ```bash
+   sudo mkdir -p /opt/tummy-time && sudo chown tummydeploy:tummydeploy /opt/tummy-time
+   git clone https://github.com/ferrelldevin/tummy-time.git /opt/tummy-time
+   cd /opt/tummy-time
+   ```
+5. Make the settings file. It starts as a copy of `.env.example` and must be private from the first second.
+
+   Runs in: the server, as `tummydeploy`, in `/opt/tummy-time`
+   ```bash
+   install -m 600 .env.example infra/.env
+   ```
+   Open `infra/.env` in an editor (`nano infra/.env`) and fill in every line. Do not paste values into a terminal command line or into any chat: they land in shell history. Make each password and key with the commands below, one per value, and copy it straight into the editor.
+
+   Runs in: the server, as `tummydeploy`. Each prints one new value.
+   ```bash
+   openssl rand -hex 24                 # once for each of the three passwords
+   openssl rand -base64 32              # for CODE_LOOKUP_SECRET only
+   ```
+   What to set:
+   - `APP_ORIGIN`: `https://` and the DNS name, nothing else. `SITE_ADDRESS`: the same name, without `https://`.
+   - `DB_APP_PASSWORD`, `DB_MIGRATOR_PASSWORD`, `POSTGRES_PASSWORD`: three different passwords. `POSTGRES_USER`, `DB_APP_USER`, `DB_MIGRATOR_USER`, `DB_NAME`: names as in `.env.example`.
+   - `CODE_LOOKUP_SECRET`: the base64 value. **Copy it to its separate, safe place now** (section 17). If it is lost, every family code stops working.
+   - `BACKUP_DIR=/srv/tummy-backups`. `SITE_BANNER=test` on a test site, empty on the real one.
+   - Leave `AUTH_PROVIDER`, `API_HOST`, `API_TRUST_PROXY_HOPS`, `DB_HOST` and `DB_PORT` alone: the compose file sets them.
+6. Check the file is private and the settings are complete. This prints nothing when everything is fine and names the missing setting when not. It never prints a value.
+
+   Runs in: the server, as `tummydeploy`, in `/opt/tummy-time/infra`
+   ```bash
+   ls -l .env
+   TUMMY_VERSION=check docker compose --env-file .env -f docker-compose.prod.yml --profile tools config --quiet
+   ```
+   `ls` must show `-rw-------`. **Never run `docker compose config` without `--quiet`: it prints every secret.**
+7. First deploy. Pick the version (a git tag, or a commit) and check it out first; `deploy.sh` refuses to run on anything else.
+
+   Runs in: the server, as `tummydeploy`, in `/opt/tummy-time`
+   ```bash
+   git checkout <version>
+   infra/deploy.sh <version>
+   ```
+   On the very first run the database container makes the two users and the database by itself, then the script backs up the empty database, migrates, starts everything and waits for `/api/health`. The first certificate can take a short while; the script waits.
+8. Check from outside, from your own computer: only 80 and 443 answer, and the database does not.
+
+   Runs in: your own computer. Replace the name.
+   ```bash
+   curl -sI http://YOUR-NAME/ | head -n 3            # expect a redirect to https
+   curl -sS https://YOUR-NAME/api/health             # expect {"ok":true}
+   nc -zv -w 3 YOUR-NAME 5432; nc -zv -w 3 YOUR-NAME 3001   # expect both to fail
+   ```
+   And on the server: `docker compose --env-file .env -f docker-compose.prod.yml ps` must show a port only on `caddy`.
+9. Do the checks section 11 owes (cache and security headers on `/`, `/sw.js`, the manifest and one `/assets/` file) against `https://YOUR-NAME`.
+10. Install the daily timers (section 20), the uptime check (section 21 explains where it runs), and do the practice list in section 23 once, on the test site, before any real family uses a server.
+
+## 14. Deploy
+
+Status: **NOT YET PRACTICED.** `infra/deploy.sh` has had its control flow exercised against stand-in `docker` and `curl` commands (to find shell mistakes), and has never run against Docker.
+
+Runs in: the server, as `tummydeploy`, in `/opt/tummy-time`
+```bash
+git fetch --tags
+git checkout <version>
+infra/deploy.sh <version>
+```
+
+What the script does, in order, and where it stops: it refuses without a private `infra/.env`; refuses as root unless `--allow-root`; refuses unless `<version>` is exactly what is checked out and clean; builds the images (nothing running changes); takes a backup labelled `pre-<version>`; runs the migrations as the migrator user; starts the new version; waits for `/api/health` through Caddy over HTTPS; on success records the version in `infra/.deployed-version`. If the health check fails it starts the previous version again and exits with a failure.
+
+| What the script says | What it means | What to do |
+|---|---|---|
+| `refusing to run as root` | You are root | Use `tummydeploy` |
+| `has mode 644` (or similar) | `infra/.env` can be read by others | `chmod 600 infra/.env`, then ask who might have read it |
+| `"<version>" is not what is checked out` | The checkout differs | `git checkout <version>` |
+| `the backup failed, so nothing was changed` | No backup was taken, so nothing else was either | Fix the cause (disk full? `BACKUP_DIR` missing?) and run again. Never skip the backup |
+| `the migration failed. The running version was not stopped` | A migration stopped part-way | Read section 15 before running anything else. The old version is still running |
+| `version ... did NOT answer /api/health in time` and `the previous version is answering again` | The new version is bad; the old one is back | Read the new version's logs (section 19) and fix it in a new version. Remember the migration caveat in section 15 |
+| `the previous version is NOT answering either` | **An outage** | Section 15, then section 19, then the people in section 24 |
+
+A rule for every migration, so rolling back stays possible: a migration may **add** things (a column that allows empty, a new table), and a later release may remove what nothing uses any more. It must never rename or drop something the previous version still reads, in one release.
+
+Keep the old images. `deploy.sh` rolls back by starting the previous version's images, which stay on the server unless someone runs `docker image prune` or `docker system prune`. Do not.
+
+## 15. Roll back
+
+Status: **NOT YET PRACTICED.**
+
+**The caveat, in plain words: a migration that already ran is NOT rolled back.** Going back to the previous version puts back the previous program, not the previous tables. Whether that is enough depends on whether the bad version changed the tables.
+
+1. See what the bad version changed in the tables. Nothing printed means no migration.
+
+   Runs in: the server, as `tummydeploy`, in `/opt/tummy-time`
+   ```bash
+   git diff --stat <previous-version> <bad-version> -- apps/api/drizzle
+   ```
+2. No migration: going back is enough. `deploy.sh` already did it when the health check failed. To do it by hand:
+
+   Runs in: the server, as `tummydeploy`, in `/opt/tummy-time/infra`
+   ```bash
+   export TUMMY_VERSION=<previous-version>
+   docker compose --env-file .env -f docker-compose.prod.yml up -d --no-build --remove-orphans
+   printf '%s\n' "$TUMMY_VERSION" > .deployed-version
+   curl -sS https://YOUR-NAME/api/health
+   ```
+3. A migration ran, and the old version works with the new tables (the migration only added things): do step 2. Done.
+4. A migration ran, and the old version does NOT work with the new tables: stop and call Devin before doing anything. The only way back is to **restore the backup that `deploy.sh` took just before** (its path is in the script's last messages, and the file name ends `-pre-<version>.dump`), which **throws away everything written since that backup**: every log entry and sign-up in between. Section 16 is the procedure. Decide with Devin first; this is a loss of families' data.
+5. Write down what happened, and make a new version that fixes it. Never edit a migration that has already run on a server.
+
+## 16. Restore on the server
+
+Status: **NOT YET PRACTICED on a server.** The restore scripts themselves were practiced on a developer machine (section 7's drill, Block 3). The "move the sync counter forward" step (below) has never been practiced anywhere. The first server drill must time it and write the result in this section.
+
+A restore takes the database back in time and the site is down while it runs. Use it when data is lost or damaged, or when section 15 step 4 says so. For a **drill**, restore into a separate database instead (second half of this section), which touches nothing live.
+
+Set up the short form once per terminal. Every command below needs `TUMMY_VERSION` set.
+
+Runs in: the server, as `tummydeploy`, in `/opt/tummy-time/infra`
+```bash
+export TUMMY_VERSION="$(cat .deployed-version)"
+dc() { docker compose --env-file .env -f docker-compose.prod.yml "$@"; }
+ls -l /srv/tummy-backups        # choose the backup file; note its name
+```
+
+### Restore over the live database
+
+1. Stop the three services that use the database. The site is now down.
+
+   Runs in: the server, as `tummydeploy`, in `/opt/tummy-time/infra`
+   ```bash
+   dc stop caddy web api
+   ```
+2. Restore. `--replace-existing-data` drops the current tables first; that is the point here, and the script's one safeguard against doing it by accident. The file name is inside the container, under `/backups`.
+
+   Runs in: the server, as `tummydeploy`, in `/opt/tummy-time/infra`
+   ```bash
+   time dc --profile tools run --rm -T dbtools bash /infra/restore.sh /backups/<file>.dump --replace-existing-data
+   ```
+3. Run the migrations. They change nothing if the backup was current, and they give the app user its row access again.
+
+   Runs in: the server, as `tummydeploy`, in `/opt/tummy-time/infra`
+   ```bash
+   dc --profile tools run --rm -T migrate
+   ```
+4. **Move the sync counter forward** (Block 6). Phones remember the last sync number they saw. A restore takes the counter back, so new changes could get numbers that phones believe they already have, and those phones would skip them. The jump only has to be larger than the number of changes lost.
+
+   Runs in: the server, as `tummydeploy`, in `/opt/tummy-time/infra`. The connection is the migrator user's, set up by the `dbtools` service.
+   ```bash
+   dc --profile tools run --rm -T dbtools psql --no-psqlrc -v ON_ERROR_STOP=1 -c \
+     "SELECT setval('tummy_logs_rev_seq', (SELECT COALESCE(MAX(rev), 0) FROM tummy_logs) + 1000000)"
+   ```
+   Entries a phone had that the restore lost stay on that phone until it signs out; they are not sent again. Tell Devin how many hours of data were lost so the people affected can be told.
+5. Start everything and check.
+
+   Runs in: the server, as `tummydeploy`, in `/opt/tummy-time/infra`
+   ```bash
+   dc up -d --no-build
+   curl -sS https://YOUR-NAME/api/health
+   dc --profile tools run --rm -T dbtools psql --no-psqlrc -c \
+     "SELECT (SELECT count(*) FROM accounts) AS accounts, (SELECT count(*) FROM tummy_logs) AS tummy_logs"
+   ```
+6. A backup does not hold `CODE_LOOKUP_SECRET`. If this is a new server, put the secret back from its separate safe place before step 5, or nobody can sign in (section 17).
+
+### A drill: restore into a separate database
+
+This is the way to test a backup without touching the live site. Time each step and write the result here.
+
+Runs in: the server, as `tummydeploy`, in `/opt/tummy-time/infra`. It asks for the database administrator's password (the `POSTGRES_PASSWORD` value); typing it shows nothing.
+```bash
+read -rs PGPASSWORD; export PGPASSWORD
+export PGUSER=<the POSTGRES_USER value>
+# 1. make the new database and the two users' access to it
+dc --profile tools run --rm -T -e PGUSER -e PGPASSWORD -e PGDATABASE=postgres -e DB_NAME=tummy_restore dbtools bash /infra/db/init-roles.sh
+unset PGPASSWORD PGUSER
+# 2. restore into it, and time it
+time dc --profile tools run --rm -T -e PGDATABASE=tummy_restore dbtools bash /infra/restore.sh /backups/<file>.dump
+# 3. look at it
+dc --profile tools run --rm -T -e PGDATABASE=tummy_restore dbtools psql --no-psqlrc -c \
+  "SELECT (SELECT count(*) FROM accounts) AS accounts, (SELECT count(*) FROM tummy_logs) AS tummy_logs"
+```
+Then remove it: repeat the administrator login (`read -rs PGPASSWORD; export PGPASSWORD; export PGUSER=...`) and run `dc --profile tools run --rm -T -e PGUSER -e PGPASSWORD -e PGDATABASE=postgres dbtools psql --no-psqlrc -c "DROP DATABASE tummy_restore"`, then `unset PGPASSWORD PGUSER`.
+
+| Drill result | Measured |
+|---|---|
+| Restore time | _not measured yet_ |
+| Rows match the live database | _not checked yet_ |
+| Done by, and on which server | _blank_ |
+
+## 17. Rotate a secret
+
+Status: **NOT YET PRACTICED.**
+
+### The database passwords
+
+There are three: the app user, the migrator user and the container's administrator. The passwords live in two places that must agree: inside the database, and in `infra/.env`.
+
+**The app and migrator passwords**
+
+1. Edit `infra/.env` and put the new values in (make each with `openssl rand -hex 24`).
+2. Reset both inside the database. `init-roles.sh` sets both users' passwords to whatever `.env` now says. It runs as the administrator.
+
+   Runs in: the server, as `tummydeploy`, in `/opt/tummy-time/infra` (after `export TUMMY_VERSION=...` and the `dc` function from section 16)
+   ```bash
+   read -rs PGPASSWORD; export PGPASSWORD
+   export PGUSER=<the POSTGRES_USER value>
+   dc --profile tools run --rm -T -e PGUSER -e PGPASSWORD -e PGDATABASE=postgres dbtools bash /infra/db/init-roles.sh
+   unset PGPASSWORD PGUSER
+   ```
+3. Restart the API so it connects with the new app password. Until you do, new connections fail (connections already open keep working).
+
+   Runs in: the server, as `tummydeploy`, in `/opt/tummy-time/infra`
+   ```bash
+   dc up -d --no-build --force-recreate api
+   curl -sS https://YOUR-NAME/api/health
+   ```
+4. Check the next deploy or backup works (they use the migrator password).
+
+**The administrator's password (`POSTGRES_PASSWORD`).** The database container reads it only the first time it starts, so changing `.env` alone changes nothing. Change it inside the database first, then in `.env`.
+
+Runs in: the server, as `tummydeploy`, in `/opt/tummy-time/infra`. `\password` asks for the new password twice and shows nothing.
+```bash
+dc exec db sh -c 'psql -U "$POSTGRES_USER" -d postgres'
+# at the postgres=# prompt:  \password   (type the new one twice), then  \q
+```
+Then put the same value in `infra/.env`.
+
+### `CODE_LOOKUP_SECRET`: do NOT rotate it
+
+This one is different. The database stores only a keyed hash of each family code, made with this secret. The code itself is not stored and cannot be worked out. So **if the secret changes, every family code made before stops finding its account, and there is no way to recompute them.** Rotating it locks every family out for good. It is not rotated without a migration plan, and today there is none, because there is no account recovery yet (Block 10).
+
+- **Keeping it safe.** It must be backed up **separately from the database backups**, by whoever holds the server's other secrets: a database backup without it cannot sign anyone in; a copy of it without the database is useless. Where that safe place is, who can read it, and whether it is encrypted, is **an open decision for Devin and Dr. Gupta**. Until that is decided, do not put real family data on a server.
+- **If it leaks.** Do not rotate it on your own. Tell Devin at once. What the secret alone gives an attacker is the ability to check guesses of family codes against a copy of the database, and only if they also have a copy of the database; they still need the PIN, which is stored as an Argon2id hash and locks an account after five wrong tries. To limit damage while Devin decides: if there is any sign the database was copied as well, end every signed-in phone by deleting the sessions (section 18 shows how to run SQL as the migrator; the statement is `DELETE FROM sessions`). Replacing the secret means every family registers again, and loses their log unless a recovery design exists first. That decision is for Devin and Dr. Gupta, with a security review. Write down when and how it leaked.
+- **A stolen `.env` or server access** is the same: treat every secret in it as leaked.
+
+### Rotate the HTTPS certificate
+
+Caddy renews its own certificate by itself on the default path. If ODU issues the certificate instead, the renewal is ODU's process and is not written yet.
+
+## 18. Lock or unlock one account by hand
+
+Status: **NOT YET PRACTICED.** Use it when a caregiver is locked out and cannot wait, or an account must be shut off.
+
+**It is done by account ID only.** An account ID is a random UUID. Nobody, including us, can look an account up by its family code: the lookup key is a keyed hash made with `CODE_LOOKUP_SECRET`, and we deliberately provide no tool that takes a code and the secret together. The ID is not shown to the caregiver anywhere in the app today. That is a gap: right now the only routes to an ID are the audit events (a `sign_up` or `lockout` row has the account's ID and a time), which is a guess from a time, not a lookup. Decide how a caregiver and the lab identify an account (for example a "show my code" screen with a support code, planned for Block 10) before real support requests arrive. **Never ask a caregiver for their family code or PIN to find their account**; staff must not have them.
+
+Rows to know in `accounts`: `failed_attempts` (wrong PINs in a row) and `locked_until` (when a lockout ends; empty means not locked). Five wrong PINs lock an account for a while by themselves.
+
+Run SQL as the **migrator** user, never as the app user and never as the administrator, in the database container's network.
+
+Runs in: the server, as `tummydeploy`, in `/opt/tummy-time/infra` (after `export TUMMY_VERSION=...` and the `dc` function from section 16). `psql` opens at the prompt; paste one statement at a time.
+```bash
+dc --profile tools run --rm dbtools psql --no-psqlrc
+```
+
+Look at one account's state (nothing secret is shown):
+```sql
+SELECT id, failed_attempts, locked_until, created_at FROM accounts WHERE id = '<the-account-id>';
+```
+
+Unlock (clears the count and the lock):
+```sql
+UPDATE accounts SET failed_attempts = 0, locked_until = NULL WHERE id = '<the-account-id>';
+```
+
+Lock (a lock far in the future; the account stays shut until someone unlocks it), and sign out every phone that is already signed in to it, because a lock stops new sign-ins only:
+```sql
+UPDATE accounts SET locked_until = now() + interval '100 years' WHERE id = '<the-account-id>';
+DELETE FROM sessions WHERE account_id = '<the-account-id>';
+```
+
+Each statement should say `UPDATE 1` (or `DELETE n`). `UPDATE 0` means the ID is wrong; do nothing else. These changes write no audit event. Write down who did it, when and why, somewhere the lab keeps (it is not decided where).
+
+## 19. Read the logs
+
+Status: **NOT YET PRACTICED.**
+
+Runs in: the server, as `tummydeploy`, in `/opt/tummy-time/infra` (after `export TUMMY_VERSION=...` and the `dc` function from section 16)
+```bash
+dc logs --tail 200 api         # the API: one line per request
+dc logs --tail 200 web         # nginx: one line per request for the app's files
+dc logs --tail 100 caddy       # the outer proxy: start-up, certificates, errors
+dc logs --tail 100 db          # PostgreSQL
+dc ps                          # which are running and healthy
+```
+Add `-f` to follow live, and `--since 30m` to see only the last half hour. Docker keeps the last five files of 10 MB for each container and then overwrites the oldest, so old lines are gone.
+
+**What is deliberately not in the logs** (`docs/data-map.md`, "In logs"): no PIN, no family code, no cookie, no session token, no request body, no network address. The API's log lines have a method, a path, a status, a duration and a random request ID. nginx's access line is the method, path, status and time, with no address. If you ever see one of those things in a log, stop and tell Devin: that is a bug and, in a real deployment, a leak.
+
+Three things to check on the first server, because they could not be checked without one:
+- **Caddy.** It logs no requests by default, but its error lines (a failed secure connection, for example) can include the visitor's address. `docs/data-map.md` says logs hold no network address. If Caddy does write one, either silence that log (`log` settings in `infra/Caddyfile`) or change the data map; Devin decides.
+- **PostgreSQL.** An error line from the database can quote the row that caused it, such as the hash in a duplicate key error. Those are hashes, not PINs or codes, but read before pasting database logs into a ticket or a chat.
+- **Docker's own log files** on the server are readable by administrators and the Docker group.
+
+## 20. Backups and the daily jobs
+
+Status: **NOT YET PRACTICED on a server.** The cleanup command has been run against a local database and has automated tests (`apps/api/test/db/cleanup.test.ts`); the scripts that run it on a server have not run. The backup script itself was practiced in Block 3.
+
+**What is solved and what is not.**
+
+| Question | Answer today |
+|---|---|
+| Is a backup taken every day? | Written (`infra/backup-scheduled.sh`, timer examples in `infra/systemd/`), **not installed or run anywhere** |
+| Where does it go? | `BACKUP_DIR`, on the server's own disk, outside Docker's storage. The script refuses a folder inside `/var/lib/docker` |
+| Is it off the server's disk? | **No. Not solved.** A second disk, and an off-server copy, are open decisions |
+| Is it encrypted? | **No. Not solved.** Each file is private to the deploy user (mode 600) and holds every family's tummy logs in the clear. Who holds an encryption key is an open decision. Do not copy these files anywhere until it is made |
+| Does it include `CODE_LOOKUP_SECRET`? | **No, on purpose.** Back that up separately (section 17) |
+| How long are backups kept? | `BACKUP_KEEP_DAYS` (default 30, to confirm: `docs/data-map.md`). After a good backup the script deletes `tummy-time-*.dump` files older than that, in `BACKUP_DIR` only. Nothing else in the folder is touched |
+
+**Install the two daily timers** (examples; edit the user and the paths):
+
+Runs in: the server, as an administrator
+```bash
+sudo cp /opt/tummy-time/infra/systemd/tummy-*.service /opt/tummy-time/infra/systemd/tummy-*.timer /etc/systemd/system/
+sudoedit /etc/systemd/system/tummy-backup.service     # check User= and the path
+sudoedit /etc/systemd/system/tummy-cleanup.service    # same
+sudo systemctl daemon-reload
+sudo systemctl enable --now tummy-backup.timer tummy-cleanup.timer
+systemctl list-timers 'tummy-*'
+```
+Run each once by hand and read the output before trusting the timer:
+
+Runs in: the server, as `tummydeploy`, in `/opt/tummy-time`
+```bash
+infra/backup-scheduled.sh       # expect: "backup-scheduled: wrote /srv/tummy-backups/tummy-time-....dump"
+infra/cleanup-scheduled.sh      # expect: "db:cleanup: removed N ended sessions and M old audit events."
+```
+If a timer fails, `journalctl -u tummy-backup.service` shows why. **A backup that fails silently is the worst case:** nobody is alerted about a failed timer yet (section 21).
+
+**The daily cleanup** (`pnpm db:cleanup`, run as `node dist/cli/cleanup.js` inside the API container) removes sessions that have ended (past their 90-day end, or unused for 30 days) and audit events older than 180 days. It prints counts only. It is safe to run twice and while the API is running. It does **not** erase "deleted" tummy log entries, although the data map says they go after 90 days: a phone that has not synced for longer than that would never hear about the delete and would keep showing the entry (`docs/adr/0005-sync.md`, "Known gap"). That job waits until a rule for such phones is decided. Until then those rows stay.
+
+## 21. Uptime check and who is alerted
+
+Status: **NOT YET PRACTICED.**
+
+`infra/healthcheck.sh` asks `/api/health` through the public address and prints one line (`healthcheck: ok ...` or `healthcheck: FAILED ...`), exiting non-zero on failure. It is `curl`, not a monitoring service.
+
+Run it from a **different machine** than the server, every few minutes (a dead server cannot report its own death), from cron or a systemd timer, as the comment at the top of the script shows. Then something has to turn a non-zero exit into a message to a person.
+
+**Who receives the alert, and how, is an open decision for Devin and Dr. Gupta.** Until it is made, no one is alerted, and an outage is found when someone looks. Put the person here once chosen: _(blank)_.
+
+Also not covered: a failed backup or cleanup timer, a full disk, an expiring certificate.
+
+## 22. Where every procedure stands
+
+| Procedure | Status |
+|---|---|
+| Database on a developer machine, migrate, seed, reset (sections 2 to 5) | Practiced (Block 3) |
+| Back up and restore a database on a developer machine (sections 6 and 7) | Practiced (Block 3) |
+| Backup and restore inside the Docker containers, and on a server | **NOT YET PRACTICED** |
+| Move the sync counter forward after a restore | **NOT YET PRACTICED** anywhere |
+| `pnpm db:cleanup` against a local database | Practiced on a developer machine, with automated tests |
+| Cleanup and backup timers on a server | **NOT YET PRACTICED** |
+| First-time server setup (section 13) | **NOT YET PRACTICED** |
+| Deploy, and the automatic return to the previous version (sections 14 and 15) | **NOT YET PRACTICED** (control flow tried with stand-in commands only) |
+| Restore on the server (section 16) | **NOT YET PRACTICED** |
+| Rotate database passwords (section 17) | **NOT YET PRACTICED** |
+| Rotate `CODE_LOOKUP_SECRET` | Not done on purpose: see section 17 |
+| Lock and unlock an account (section 18) | **NOT YET PRACTICED** |
+| Read the logs (section 19) | **NOT YET PRACTICED** |
+| Uptime check and alert (section 21) | **NOT YET PRACTICED**; no one is alerted |
+| HTTPS certificate, redirect from 80 to 443 | **NOT YET PRACTICED** |
+| Cache and security headers on a live server (section 11) | **NOT YET PRACTICED** |
+
+## 23. Practice list for the first real server
+
+Do these on the test site, in this order, and change this page where reality differs. Each one that works moves a row in section 22 to "practiced", with who did it and on which server.
+
+1. `docker compose ... config --quiet`, then `docker compose ... --profile tools build`. Watch for an image tag that does not exist, then pin every image by digest (the top of `infra/docker-compose.prod.yml` says how).
+2. `infra/deploy.sh <version>` from empty. Open the site on a phone. Look for the "Test site. Sample data." strip if `SITE_BANNER=test`.
+3. Section 13, step 8 and 9: ports and headers from outside.
+4. Run both scheduled scripts by hand, then install the timers.
+5. Deploy a second version that is deliberately broken (for example, one with a wrong `API_PORT` in a throwaway branch) and watch `deploy.sh` return to the first. Write down what it said.
+6. The restore drill in section 16, timed.
+7. Rotate the app password (section 17).
+8. Lock and unlock a made-up account (section 18).
+9. Stop the database container and see what the site and the uptime check do.
+
+If a container will not start, the first suspects are the `read_only`, `tmpfs` and `cap_drop` lines in the compose file, which could not be tested where they were written.
+
+## 24. Who to call
+
+Names are blank on purpose. Fill them in, in a private copy, once they are known. This page is in the repo, so **no real phone number or email address goes in this file**: put a pointer to where the list is kept instead.
+
+| For | Who | How to reach them |
+|---|---|---|
+| The server is down, or a deploy has gone wrong | _(blank: first person on call)_ | _(blank)_ |
+| The server, its network, certificates or patching at ODU | _(blank: ODU IT or the CS systems group contact)_ | _(blank)_ |
+| A suspected leak of data or of a secret | Devin, then Dr. Gupta | _(blank)_ |
+| A caregiver's question about an account | _(blank: who answers families)_ | _(blank)_ |
+| Anything that changes what is stored or how sign-in works | Devin | _(blank)_ |
+| Where the private contact list is kept | _(blank)_ | |
