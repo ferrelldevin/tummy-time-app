@@ -37,7 +37,7 @@ export const en = {
     // Fixed text. The screen shows this constant, never the copy in the content file.
     emergencyLine: EMERGENCY_LINE,
     // GAP: the list heading is a stand-in. The real "when to call" wording, and the items under
-    // it (content/safety-card.yaml), must come from the client's clinicians. Nothing medical is
+    // it (content/safety-card.json), must come from the client's clinicians. Nothing medical is
     // written here on purpose.
     callTodayHeading: "Call today",
     // Sentences below come word for word from docs/knowledge/content-style-guide.md.
