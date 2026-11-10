@@ -14,4 +14,5 @@ RUN pnpm --filter @tummy/shared build && pnpm --filter @tummy/web exec vite buil
 FROM nginx:1.31.2-alpine
 # The nginx image fills ${API_PORT} in this template from the container's environment.
 COPY infra/nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY infra/nginx-security-headers.conf /etc/nginx/snippets/tummy-security-headers.conf
 COPY --from=build /repo/apps/web/dist /usr/share/nginx/html
