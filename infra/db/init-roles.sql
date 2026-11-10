@@ -16,7 +16,9 @@ ALTER ROLE :"app_user" WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICAT
   PASSWORD :'app_password';
 
 -- The database belongs to the migrator. Nobody else may connect, except the app user.
-SELECT format('CREATE DATABASE %I OWNER %I ENCODING %L', :'db_name', :'migrator_user', 'UTF8')
+-- TEMPLATE template0: lets us ask for UTF8 even on a server whose default template uses another
+-- encoding (otherwise CREATE DATABASE fails with "new encoding is incompatible").
+SELECT format('CREATE DATABASE %I OWNER %I TEMPLATE template0 ENCODING %L', :'db_name', :'migrator_user', 'UTF8')
   WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = :'db_name') \gexec
 ALTER DATABASE :"db_name" OWNER TO :"migrator_user";
 REVOKE ALL ON DATABASE :"db_name" FROM PUBLIC;
