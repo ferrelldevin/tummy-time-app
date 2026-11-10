@@ -3,6 +3,7 @@ import type {
   FastifyInstance,
   FastifyReply,
   FastifyRequest,
+  preHandlerAsyncHookHandler,
   RouteHandlerMethod,
 } from "fastify";
 import { z } from "zod";
@@ -42,6 +43,17 @@ function messageFor(code: ApiErrorCode): string {
       return "Too many requests. Please wait a moment and try again.";
     case "internal_error":
       return "Something went wrong on our side. Please try again.";
+    case "unauthorized":
+      return "Please sign in.";
+    case "forbidden":
+      return "This request is not allowed.";
+    case "sign_in_failed":
+      // The same words for an unknown family code and a wrong PIN (threat model #2).
+      return "The family code or PIN is not right.";
+    case "account_locked":
+      return "Too many wrong tries. Please wait, then try again.";
+    case "weak_pin":
+      return "That PIN is too easy to guess. Please choose another one.";
   }
 }
 
@@ -62,6 +74,10 @@ export function errorBody(code: ApiErrorCode): ApiErrorBody {
 
 function codeForStatus(status: number): ApiErrorCode {
   switch (status) {
+    case 401:
+      return "unauthorized";
+    case 403:
+      return "forbidden";
     case 404:
       return "not_found";
     case 413:
@@ -202,6 +218,13 @@ export interface RouteSpec<
   response: R;
   /** Success status. Default 200. */
   status?: number;
+  /**
+   * Runs before the inputs are read, for checks that must come first (the sign-in guard in
+   * src/auth/guard.ts). It throws an ApiError to refuse.
+   */
+  preHandler?: preHandlerAsyncHookHandler;
+  /** A stricter limit for this route than the general one (sign-in and sign-up). */
+  rateLimit?: { max: number; timeWindowMs: number };
   handler: (input: {
     params: z.infer<P>;
     query: z.infer<Q>;
@@ -267,5 +290,16 @@ export function defineRoute<
     return reply.status(spec.status ?? 200).send(checked.data);
   };
 
-  app.route({ method: spec.method, url: spec.url, config: { apiRules: true }, handler });
+  app.route({
+    method: spec.method,
+    url: spec.url,
+    config: {
+      apiRules: true,
+      ...(spec.rateLimit
+        ? { rateLimit: { max: spec.rateLimit.max, timeWindow: spec.rateLimit.timeWindowMs } }
+        : {}),
+    },
+    ...(spec.preHandler ? { preHandler: spec.preHandler } : {}),
+    handler,
+  });
 }

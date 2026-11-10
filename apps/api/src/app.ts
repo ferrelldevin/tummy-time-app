@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
+import cookie from "@fastify/cookie";
 import Fastify, { type FastifyInstance } from "fastify";
 import { healthResponseSchema } from "@tummy/shared";
+import { registerAuthRoutes, type AuthDeps } from "./auth/routes.js";
 import type { DbHandle } from "./db/client.js";
 import type { Env } from "./env.js";
 import { applyApiRules, defineRoute, notFoundHandler } from "./http/api-rules.js";
@@ -18,6 +20,13 @@ export interface AppOptions extends Partial<Pick<Env, "LOG_LEVEL" | "API_TRUST_P
   rateLimit?: RateLimitOptions;
   /** The app user's connection pool. The app closes it when it closes. */
   db?: DbHandle;
+  /**
+   * The app's own origin (APP_ORIGIN). Requests that change something must come from it.
+   * Without one, every such request is refused.
+   */
+  appOrigin?: string;
+  /** Sign-in, sessions and the account routes (src/auth). Built with createAuth(). */
+  auth?: AuthDeps;
   /** Extra routes, added after the rules and limits are in place (tests use this). */
   routes?: (app: FastifyInstance) => void;
 }
@@ -44,7 +53,10 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
   });
 
   applyApiRules(app);
-  registerSecurity(app, options.rateLimit ?? DEFAULT_RATE_LIMIT);
+  registerSecurity(app, options.rateLimit ?? DEFAULT_RATE_LIMIT, options.appOrigin);
+  // Reads the Cookie header into request.cookies and writes Set-Cookie. No signing secret: the
+  // session token is random and checked against the database, so it needs no signature.
+  void app.register(cookie);
 
   void app.register((scope, _opts, done) => {
     scope.setNotFoundHandler({ preHandler: scope.rateLimit() }, notFoundHandler);
@@ -56,6 +68,9 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
       handler: () => ({ ok: true as const }),
     });
 
+    if (options.auth) {
+      registerAuthRoutes(scope, options.auth);
+    }
     options.routes?.(scope);
     done();
   });

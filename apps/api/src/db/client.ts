@@ -3,6 +3,8 @@ import pg from "pg";
 import type { DbSettings } from "./config.js";
 
 export type Db = NodePgDatabase;
+/** The pool's database handle, or a transaction opened on it. Both run the same queries. */
+export type Queryable = Db | Parameters<Parameters<Db["transaction"]>[0]>[0];
 
 export interface DbHandle {
   db: Db;
