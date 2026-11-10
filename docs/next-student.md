@@ -2,7 +2,7 @@
 
 This page is for a second-year CS student who has never seen this project. It is a path, not a lecture. Follow it top to bottom and you will have the app running on your computer, make one tiny change, and have it ready for review. If a step is unclear, or you have to ask someone a question, that is a bug in this page: tell Devin, or fix the page in your pull request.
 
-**Not covered here:** putting the app on a server (that is [docs/runbook.md](runbook.md), sections 12 to 24) and the plan for what to build next ([docs/build-plan.md](build-plan.md)).
+**Not covered here:** putting the app on a server (that is [docs/runbook.md](runbook.md), sections 12 to 24; the deploy files have been run in Docker with a test certificate, never on a real server, and section 13a shows how to practice the production setup on your own computer) and the plan for what to build next ([docs/build-plan.md](build-plan.md)).
 
 ## 0. Three rules before you touch anything
 
@@ -80,6 +80,8 @@ pnpm dev
 Open <http://localhost:5173>. You should see "Tummy Time" and "Server is reachable". If the API says its settings are not right, `.env` is missing something; the message names it. If it says it cannot reach the database, start the database. Section 9 of the runbook lists the messages.
 
 Stop it with `Ctrl+C`.
+
+To run the whole app in containers instead, fill in `CODE_LOOKUP_SECRET` as well, then `pnpm docker:up`. The app is then at <http://127.0.0.1:8080> (use that exact address, not `localhost`). Set `DOCKER_WEB_PORT` in `.env` to use another port.
 
 ## 6. Where things are
 
