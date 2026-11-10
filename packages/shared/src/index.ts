@@ -44,3 +44,20 @@ export {
   type AuthMethod,
   type MeResponse,
 } from "./auth.js";
+export {
+  LOG_MAX_AGE_MS,
+  LOG_MAX_DURATION_SECONDS,
+  LOG_MAX_FUTURE_MS,
+  LOG_MIN_DURATION_SECONDS,
+  LOG_PAGE_SIZE,
+  isAllowedStartTime,
+  logEntrySchema,
+  logIdSchema,
+  logParamsSchema,
+  logsPageSchema,
+  logsQuerySchema,
+  putLogBodySchema,
+  type LogEntry,
+  type LogsPage,
+  type PutLogBody,
+} from "./logs.js";
