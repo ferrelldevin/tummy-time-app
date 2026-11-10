@@ -15,6 +15,7 @@ Planning, documents and code in this repo are produced with AI assistance (Anthr
 - W3C Web Content Accessibility Guidelines (WCAG) 2.2.
 - Michael Nygard's Architecture Decision Record format (docs/adr).
 - STRIDE threat modeling (Microsoft), used in docs/threat-model.md.
+- Flesch-Kincaid grade level formula (Kincaid and others, 1975), implemented by us in apps/web/src/strings/readability.ts as an approximation.
 - AHRQ PEMAT and the CDC Clear Communication Index (content checks).
 
 ## Libraries and assets
@@ -24,6 +25,7 @@ Runtime libraries
 - React and React DOM (build the screens). MIT.
 - Fastify (the API server). MIT.
 - Zod (checks data shapes, shared by web and API). MIT.
+- react-router 8.5.1 (screen routing in the web app), with its two dependencies cookie-es and @remix-run/route-pattern. MIT.
 
 Build and test tools
 - Vite and @vitejs/plugin-react (dev server and bundler). MIT.
@@ -33,7 +35,7 @@ Build and test tools
 - jsdom (browser stand-in for unit tests). MIT.
 - @testing-library/react and @testing-library/dom (test React screens like a user). MIT.
 - Playwright Test (@playwright/test) (end-to-end tests). Apache-2.0.
-- @axe-core/playwright and axe-core (automatic accessibility scan). MPL-2.0.
+- @axe-core/playwright and axe-core (automatic accessibility scan, in browser tests and in component unit tests). MPL-2.0.
 - @types/react, @types/react-dom, @types/node (type definitions). MIT.
 
 Code quality tools

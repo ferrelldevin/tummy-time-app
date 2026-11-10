@@ -17,7 +17,7 @@
     "test": "pnpm build:shared && pnpm -r --workspace-concurrency=1 test",
     "test:e2e": "pnpm build:shared && pnpm --filter @tummy/web test:e2e",
     "build": "pnpm -r build",
-    "check:size": "node scripts/check-bundle-size.mjs",
+    "check:size": "node scripts/check-bundle-size.mjs && node scripts/check-no-styleguide.mjs",
     "prepare": "simple-git-hooks",
     "docker:up": "docker compose --env-file .env -f infra/docker-compose.yml up --build"
   },

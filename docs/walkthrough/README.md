@@ -14,6 +14,7 @@ A study guide for the project, written for a CS student. One chapter per build b
 |---|---|---|
 | 0 | [Ground rules and records](00-ground-rules.md) | Written |
 | 1 | [Scaffold and quality pipeline](01-scaffold.md) | Written |
+| 2 | [Design foundations and app shell](02-design-foundations.md) | Written |
 | 2 | Design foundations and app shell | Not started |
 | 3 | Database and API spine | Not started |
 | 4 | Sign-in and sessions | Not started |

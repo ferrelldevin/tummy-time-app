@@ -11,11 +11,24 @@ export default defineConfig({
   retries: 0,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   use: {
-    baseURL: "http://127.0.0.1:4173",
     ...devices["Pixel 5"],
     viewport: { width: 390, height: 844 },
     ...(executablePath ? { launchOptions: { executablePath } } : {}),
   },
+  projects: [
+    {
+      // The built app, as a caregiver gets it. The style guide must NOT be here.
+      name: "phone",
+      testIgnore: /styleguide\.spec\.ts/,
+      use: { baseURL: "http://127.0.0.1:4173" },
+    },
+    {
+      // The development server, which is the only place /styleguide exists.
+      name: "dev-phone",
+      testMatch: /styleguide\.spec\.ts/,
+      use: { baseURL: "http://127.0.0.1:5273" },
+    },
+  ],
   webServer: [
     {
       command: "pnpm --filter @tummy/api exec tsx src/server.ts",
@@ -30,6 +43,14 @@ export default defineConfig({
       cwd: "../..",
       url: "http://127.0.0.1:4173",
       env: { API_PORT: "3101" },
+      reuseExistingServer: false,
+      timeout: 120_000,
+    },
+    {
+      command: "pnpm --filter @tummy/web exec vite",
+      cwd: "../..",
+      url: "http://127.0.0.1:5273",
+      env: { API_PORT: "3101", WEB_PORT: "5273" },
       reuseExistingServer: false,
       timeout: 120_000,
     },
