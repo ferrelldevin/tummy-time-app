@@ -4,7 +4,7 @@ How to get a database, change it, back it up and put a backup back. Every comman
 
 Sections 1 to 11 come from Blocks 3, 4 and 7: a database and sign-in settings on your own machine. Sections 12 to 24 are Block 8: the server (deploys, rolling back, restoring, secrets, locking an account, logs, the daily jobs, who to call).
 
-**Read this first about sections 12 to 24.** They were written on a machine with no Docker, no server and no certificate. Nothing in them has been run on a server. Every procedure is marked either "practiced" or "NOT YET PRACTICED", and almost all are the second. The checklist in section 22 lists what to try first on the first real server. When a step here is wrong, fix this page in the same pull request that finds it.
+**Read this first about sections 12 to 24.** They were written without Docker. A reviewer then ran them in Docker during the Block 8 review (`docs/security-review-stage-a.md` says exactly what was run). That run used a test certificate that Caddy made for the name `localhost`. It was not a public certificate, not a real server and not real phones. Each section says what was practiced there and what was not. The table in section 22 and the list in section 23 say what to try first on a real server. When a step here is wrong, fix this page in the same pull request that finds it.
 
 ## 1. The pieces
 
@@ -59,6 +59,8 @@ Do **one** of these.
    pnpm db:up
    ```
    That runs `docker compose --env-file .env -f infra/docker-compose.yml -f infra/docker-compose.dev.yml up -d db`.
+
+To run the whole app in containers on your own machine (not only the database), fill in `CODE_LOOKUP_SECRET` too (section 10), then run `pnpm docker:up` as the README says. The app is then at `http://127.0.0.1:8080`. Use that exact address, not `localhost`: the API only accepts sign-in from the one address it was told is the app's. To use another port, set `DOCKER_WEB_PORT` in `.env` (`WEB_PORT` is only for `pnpm dev`). This is the developer stack. For the production stack on your own machine, see section 13a.
 
 The users are made only on the very first start, from the values in `.env` at that moment. If you change the passwords later, either run step 3 of Option A against the container, or remove the container's data volume (`docker compose -f infra/docker-compose.yml down -v`, which erases the database) and start again.
 
@@ -175,7 +177,7 @@ Done on a local PostgreSQL 16 with the seed loaded, following steps 6 and 7 abov
 | Restore again with `--replace-existing-data` | Restored, exit code 0 |
 | `pnpm db:migrate` against the copy | Up to date |
 
-Not yet practiced: a backup and restore inside the Docker containers, and on the ODU server. Block 8 does both.
+A backup and restore inside the Docker containers were practiced during the Block 8 review (section 16). Not yet practiced: a backup and restore on a real server, including the ODU server.
 
 ## 8. In CI
 
@@ -224,25 +226,26 @@ On your own machine, losing the key only costs your local test accounts: run `NO
 
 Each PIN check uses about 46 MB of memory for under a tenth of a second, and at most 4 run at once. Leave about 200 MB of room for the API on the server.
 
-## 11. Checks owed on the first real server (Block 7, done in Block 8)
+## 11. Header checks (Block 7, done in Block 8)
 
-The caching rules in `infra/nginx.conf.template` have never run. On the first server, before anyone uses it:
+Status: **done in the Block 8 review, with a test certificate for `localhost`. Not yet done on a real server.** The web image's `nginx -t` passed, and every header below was read with `curl` on `/`, `/sw.js`, the manifest, an icon, a hashed file and a missing file. Repeat the checks on a real server before anyone uses it. They are the same commands:
 
 Runs in: a terminal that can reach the server. Replace the address.
 
 ```bash
-for p in / /index.html /sw.js /manifest.webmanifest; do curl -sI "https://SERVER$p" | grep -i -E "^HTTP|cache-control|content-security-policy|content-type"; done
+for p in / /index.html /sw.js /manifest.webmanifest; do curl -sI "https://SERVER$p" | grep -i -E "^HTTP|cache-control|content-security-policy|strict-transport-security|content-type"; done
 ```
 
 - `/`, `/index.html`, `/sw.js` and the manifest must say `Cache-Control: no-cache`. If `sw.js` is cached, phones do not hear about new versions.
 - One file under `/assets/` must say `max-age=31536000, immutable`.
-- Every one must carry the Content-Security-Policy line.
-- Set `TUMMY_BUILD_ID` to the commit when building, so a phone's version can be read from the page.
+- Every one must carry the Content-Security-Policy line, and (over HTTPS) the Strict-Transport-Security line.
+- A missing file under `/assets/` must answer 404, never the page.
+- Set `TUMMY_BUILD_ID` to the commit when building, so a phone's version can be read from the page. `infra/deploy.sh` does this.
 - Keep the previous release's `/assets/` files for one release. A phone part-way through an update may still ask for one.
 
 ## 12. The production server: what runs and what is reachable
 
-Status of this whole part of the page: **NOT YET PRACTICED.** Nothing here has run on a server.
+Status of this whole part of the page: **practiced in the review container, not on a real server.** In the Block 8 review every container started with its read-only file system and dropped privileges, only `caddy` had ports (80 and 443), and the database and the API were shown, from inside each, to have no route out to the internet. All of that was with a test certificate for `localhost`.
 
 The production stack is `infra/docker-compose.prod.yml`. It is separate from the development file on purpose (see the comment at the top of that file). Everything in it runs in containers on one Linux machine.
 
@@ -276,7 +279,7 @@ Files on the server that are not in git, and why each matters:
 
 ## 13. First-time server setup
 
-Status: **NOT YET PRACTICED.** The first person to do it fixes this page as they go.
+Status: **Partly practiced.** The settings file and the first deploy (steps 5 to 7) were run in Docker during the Block 8 review, with a test certificate for `localhost` (section 13a shows how to repeat that on your own computer). **NOT YET PRACTICED on a real server:** the Linux user and `docker` group, the DNS name, open ports, a public certificate, and the checks from outside (steps 1 to 4, 8 to 10). The first person to do it fixes this page as they go.
 
 You need: a Linux server you may run Docker on; a DNS name that points at it; ports 80 and 443 open to the internet (the test-site path needs both for the certificate); and a user that is not root, here called `tummydeploy`. Anyone who can run Docker on a machine can read everything on it, so the `docker` group is as powerful as root: keep it to people who need it.
 
@@ -357,9 +360,73 @@ You need: a Linux server you may run Docker on; a DNS name that points at it; po
 9. Do the checks section 11 owes (cache and security headers on `/`, `/sw.js`, the manifest and one `/assets/` file) against `https://YOUR-NAME`.
 10. Install the daily timers (section 20), the uptime check (section 21 explains where it runs), and do the practice list in section 23 once, on the test site, before any real family uses a server.
 
+## 13a. Practice on your own computer
+
+Use this to run the production stack on a laptop, with made-up data, before anyone touches a server. It is how the Block 8 review ran it, in a Linux container with Docker. It uses Caddy's own certificate for the name `localhost`, so **your browser will warn that the connection is not private. That is expected on a practice run, and only on a practice run.** A real server never asks anyone to click past that warning.
+
+You need: Docker with the Compose plugin, `git` and `curl`, on Linux or in WSL on Windows (the scripts use Linux's `stat -c`, which the macOS `stat` does not have). Ports 80 and 443 must be free on your computer. A practice run holds sample data only: never real families' data.
+
+1. Check out the version to practice with, with nothing uncommitted. `infra/deploy.sh` refuses anything else. A commit is a version too; this prints the short name of the current one.
+
+   Runs in: your terminal, repo root
+   ```bash
+   git status --short            # must print nothing
+   git rev-parse --short HEAD    # use this as <version> below
+   ```
+2. Make a folder for backups, outside the repo.
+
+   Runs in: your terminal
+   ```bash
+   mkdir -p "$HOME/tummy-practice-backups"
+   ```
+3. Make the settings file, private from the first second, then fill it in. This is the same file section 13 step 5 describes, with the practice values below.
+
+   Runs in: your terminal, repo root
+   ```bash
+   cp .env.example infra/.env
+   chmod 600 infra/.env
+   ```
+   Open `infra/.env` in an editor and set:
+   - `DB_APP_PASSWORD`, `DB_MIGRATOR_PASSWORD`, `POSTGRES_PASSWORD`: three different passwords you make up (`openssl rand -hex 24`). `POSTGRES_USER`, `DB_APP_USER`, `DB_MIGRATOR_USER`, `DB_NAME`: names as in `.env.example`.
+   - `CODE_LOOKUP_SECRET`: `openssl rand -base64 32`.
+   - `SITE_ADDRESS=localhost`
+   - `APP_ORIGIN=https://localhost`
+   - `SITE_BANNER=test`
+   - `BACKUP_DIR`: the full path of the folder from step 2, such as `/home/you/tummy-practice-backups`.
+   - Leave `HEALTH_CA_FILE` empty for now.
+4. Deploy once.
+
+   Runs in: your terminal, repo root
+   ```bash
+   infra/deploy.sh <version>
+   ```
+   **The health check will fail this first time, and that is expected.** Caddy made its own certificate authority, and nothing on your computer trusts it yet, so the script's check (which always verifies the certificate) refuses it. With no earlier version to go back to, the script says so and **leaves the stack running**. That is what you want here.
+5. Copy Caddy's certificate authority out of the running container. This is a public certificate, not a secret. Put it outside the repo.
+
+   Runs in: your terminal, in `infra/`
+   ```bash
+   export TUMMY_VERSION=<version>
+   docker compose --env-file .env -f docker-compose.prod.yml exec -T caddy cat /data/caddy/pki/authorities/local/root.crt > "$HOME/tummy-practice-ca.crt"
+   ```
+6. Tell the script to trust it. In `infra/.env` set `HEALTH_CA_FILE` to the full path of that file, such as `/home/you/tummy-practice-ca.crt`.
+7. Deploy again.
+
+   Runs in: your terminal, repo root
+   ```bash
+   infra/deploy.sh <version>
+   ```
+   Expect the last line to say `deploy: 8/8 done.` The certificate is still verified; the script now trusts one more authority, yours.
+8. Look at it. Open `https://localhost` in a browser and click through the warning. You should see the "Test site. Sample data." strip. Then try the rest of this page against it: section 14 (deploy a second version, and a broken one), section 16 (restore), section 17, section 18 and section 19. In every command from those sections, `YOUR-NAME` is `localhost`, and `curl` needs `--cacert "$HOME/tummy-practice-ca.crt"`.
+9. Clean up when you are done. This removes the practice database and certificate for good.
+
+   Runs in: your terminal, in `infra/`
+   ```bash
+   docker compose --env-file .env -f docker-compose.prod.yml down -v
+   ```
+
 ## 14. Deploy
 
-Status: **NOT YET PRACTICED.** `infra/deploy.sh` has had its control flow exercised against stand-in `docker` and `curl` commands (to find shell mistakes), and has never run against Docker.
+Status: **practiced in the review container, not on a real server.** A good version deployed (backup, migration, start, health check over HTTPS with the certificate verified, version recorded). A version broken on purpose went back to the last good one by itself. Both were with a test certificate for `localhost`.
 
 Runs in: the server, as `tummydeploy`, in `/opt/tummy-time`
 ```bash
@@ -369,6 +436,8 @@ infra/deploy.sh <version>
 ```
 
 What the script does, in order, and where it stops: it refuses without a private `infra/.env`; refuses as root unless `--allow-root`; refuses unless `<version>` is exactly what is checked out and clean; builds the images (nothing running changes); takes a backup labelled `pre-<version>`; runs the migrations as the migrator user; starts the new version; waits for `/api/health` through Caddy over HTTPS; on success records the version in `infra/.deployed-version`. If the health check fails it starts the previous version again and exits with a failure.
+
+**What "starts the new version" means.** The script starts the proxy (`caddy`), `web` and `api` fresh on every deploy, even if their settings did not change. Caddy reads `infra/Caddyfile` only when it starts, so a changed Caddyfile would otherwise be ignored. The database is not restarted. When the script goes back to the previous version, it uses the **Caddyfile of the checkout you are standing in**, not the old version's. If the old version needs its own Caddyfile, check it out and deploy it again.
 
 | What the script says | What it means | What to do |
 |---|---|---|
@@ -386,7 +455,7 @@ Keep the old images. `deploy.sh` rolls back by starting the previous version's i
 
 ## 15. Roll back
 
-Status: **NOT YET PRACTICED.**
+Status: **the automatic return was practiced in the review container, not on a real server.** A deploy broken on purpose went back to the last good version by itself and said so. **A failed deploy means about a minute and a half of downtime** before the last good version is back, because the script has to wait to find out the new one is not healthy. The by-hand way back (step 2 below) and the cases where a migration ran (steps 3 and 4) were not practiced.
 
 **The caveat, in plain words: a migration that already ran is NOT rolled back.** Going back to the previous version puts back the previous program, not the previous tables. Whether that is enough depends on whether the bad version changed the tables.
 
@@ -401,7 +470,7 @@ Status: **NOT YET PRACTICED.**
    Runs in: the server, as `tummydeploy`, in `/opt/tummy-time/infra`
    ```bash
    export TUMMY_VERSION=<previous-version>
-   docker compose --env-file .env -f docker-compose.prod.yml up -d --no-build --remove-orphans
+   docker compose --env-file .env -f docker-compose.prod.yml up -d --no-build --remove-orphans --force-recreate caddy web api
    printf '%s\n' "$TUMMY_VERSION" > .deployed-version
    curl -sS https://YOUR-NAME/api/health
    ```
@@ -411,7 +480,7 @@ Status: **NOT YET PRACTICED.**
 
 ## 16. Restore on the server
 
-Status: **NOT YET PRACTICED on a server.** The restore scripts themselves were practiced on a developer machine (section 7's drill, Block 3). The "move the sync counter forward" step (below) has never been practiced anywhere. The first server drill must time it and write the result in this section.
+Status: **practiced in the review container, not on a real server.** The drill (restore into a separate database) and the restore over the live database both worked as written, including the "move the sync counter forward" step. After the live restore, sign-up and sync between two browsers worked, and new entries got numbers above the jump. The first real-server drill must time it again and write the result in the table below.
 
 A restore takes the database back in time and the site is down while it runs. Use it when data is lost or damaged, or when section 15 step 4 says so. For a **drill**, restore into a separate database instead (second half of this section), which touches nothing live.
 
@@ -484,13 +553,15 @@ Then remove it: repeat the administrator login (`read -rs PGPASSWORD; export PGP
 
 | Drill result | Measured |
 |---|---|
-| Restore time | _not measured yet_ |
-| Rows match the live database | _not checked yet_ |
-| Done by, and on which server | _blank_ |
+| Restore time | About 1 second, for the sample data |
+| Rows match the live database | Yes: the row counts matched |
+| Done by, and on which server | The Block 8 reviewer, in the review container (Docker, test certificate for `localhost`). **Not a real server** |
+
+The restore over the live database was also practiced in the review, with the sync counter step. It was not timed. A real server holds more data than the sample data, so its restore will take longer: measure it there.
 
 ## 17. Rotate a secret
 
-Status: **NOT YET PRACTICED.**
+Status: **the database password change was practiced in the review container, not on a real server.** It worked as written. Not practiced: changing the administrator's password on its own, and the HTTPS certificate (Caddy renews its own; nothing about that was run).
 
 ### The database passwords
 
@@ -517,6 +588,8 @@ There are three: the app user, the migrator user and the container's administrat
    ```
 4. Check the next deploy or backup works (they use the migrator password).
 
+**Expect a short restart of the database too.** The database container's settings include the passwords. When you change them in `infra/.env`, Compose notices and restarts the database container as well, for a few seconds, the next time it starts the stack's services. The site can fail for those seconds. Do this when that is acceptable.
+
 **The administrator's password (`POSTGRES_PASSWORD`).** The database container reads it only the first time it starts, so changing `.env` alone changes nothing. Change it inside the database first, then in `.env`.
 
 Runs in: the server, as `tummydeploy`, in `/opt/tummy-time/infra`. `\password` asks for the new password twice and shows nothing.
@@ -540,7 +613,7 @@ Caddy renews its own certificate by itself on the default path. If ODU issues th
 
 ## 18. Lock or unlock one account by hand
 
-Status: **NOT YET PRACTICED.** Use it when a caregiver is locked out and cannot wait, or an account must be shut off.
+Status: **practiced in the review container, not on a real server.** One account was locked and unlocked by hand as written: a locked account answered "locked" even to the right PIN, and signed in again once unlocked. Use it when a caregiver is locked out and cannot wait, or an account must be shut off.
 
 **It is done by account ID only.** An account ID is a random UUID. Nobody, including us, can look an account up by its family code: the lookup key is a keyed hash made with `CODE_LOOKUP_SECRET`, and we deliberately provide no tool that takes a code and the secret together. The ID is not shown to the caregiver anywhere in the app today. That is a gap: right now the only routes to an ID are the audit events (a `sign_up` or `lockout` row has the account's ID and a time), which is a guess from a time, not a lookup. Decide how a caregiver and the lab identify an account (for example a "show my code" screen with a support code, planned for Block 10) before real support requests arrive. **Never ask a caregiver for their family code or PIN to find their account**; staff must not have them.
 
@@ -573,7 +646,7 @@ Each statement should say `UPDATE 1` (or `DELETE n`). `UPDATE 0` means the ID is
 
 ## 19. Read the logs
 
-Status: **NOT YET PRACTICED.**
+Status: **practiced in the review container, not on a real server.** After a full run (sign-up, sign-in, saves, sync, a deploy, a restore, a password change), the logs of all four containers were read. They held no visitor address, PIN, family code, cookie or request body. The only addresses were the containers' own "listening on" lines. Caddy wrote no request lines.
 
 Runs in: the server, as `tummydeploy`, in `/opt/tummy-time/infra` (after `export TUMMY_VERSION=...` and the `dc` function from section 16)
 ```bash
@@ -587,20 +660,20 @@ Add `-f` to follow live, and `--since 30m` to see only the last half hour. Docke
 
 **What is deliberately not in the logs** (`docs/data-map.md`, "In logs"): no PIN, no family code, no cookie, no session token, no request body, no network address. The API's log lines have a method, a path, a status, a duration and a random request ID. nginx's access line is the method, path, status and time, with no address. If you ever see one of those things in a log, stop and tell Devin: that is a bug and, in a real deployment, a leak.
 
-Three things to check on the first server, because they could not be checked without one:
-- **Caddy.** It logs no requests by default, but its error lines (a failed secure connection, for example) can include the visitor's address. `docs/data-map.md` says logs hold no network address. If Caddy does write one, either silence that log (`log` settings in `infra/Caddyfile`) or change the data map; Devin decides.
+Three things to keep an eye on, on a real server:
+- **Caddy.** In the review it wrote no request lines. Its error lines (a failed secure connection from a real phone or a scanner, for example) can still include the visitor's address, and the review had no such visitors. `docs/data-map.md` says logs hold no network address. If Caddy does write one, either silence that log (`log` settings in `infra/Caddyfile`) or change the data map; Devin decides.
 - **PostgreSQL.** An error line from the database can quote the row that caused it, such as the hash in a duplicate key error. Those are hashes, not PINs or codes, but read before pasting database logs into a ticket or a chat.
 - **Docker's own log files** on the server are readable by administrators and the Docker group.
 
 ## 20. Backups and the daily jobs
 
-Status: **NOT YET PRACTICED on a server.** The cleanup command has been run against a local database and has automated tests (`apps/api/test/db/cleanup.test.ts`); the scripts that run it on a server have not run. The backup script itself was practiced in Block 3.
+Status: **the scripts were practiced in the review container, not on a real server. The timers were not run anywhere.** `infra/backup-scheduled.sh` and `infra/cleanup-scheduled.sh` were run by hand against the practice stack and worked (and every deploy runs the backup script). The cleanup command also has automated tests (`apps/api/test/db/cleanup.test.ts`). The systemd timer files were checked for syntax only and are not installed anywhere.
 
 **What is solved and what is not.**
 
 | Question | Answer today |
 |---|---|
-| Is a backup taken every day? | Written (`infra/backup-scheduled.sh`, timer examples in `infra/systemd/`), **not installed or run anywhere** |
+| Is a backup taken every day? | The script works (run by hand in the review). The daily timer (examples in `infra/systemd/`) is **not installed anywhere** |
 | Where does it go? | `BACKUP_DIR`, on the server's own disk, outside Docker's storage. The script refuses a folder inside `/var/lib/docker` |
 | Is it off the server's disk? | **No. Not solved.** A second disk, and an off-server copy, are open decisions |
 | Is it encrypted? | **No. Not solved.** Each file is private to the deploy user (mode 600) and holds every family's tummy logs in the clear. Who holds an encryption key is an open decision. Do not copy these files anywhere until it is made |
@@ -631,7 +704,7 @@ If a timer fails, `journalctl -u tummy-backup.service` shows why. **A backup tha
 
 ## 21. Uptime check and who is alerted
 
-Status: **NOT YET PRACTICED.**
+Status: **the script was practiced in the review container; the alert is not set up.** `infra/healthcheck.sh` worked, and it exits 1 on a wrong address. It has not run from a different machine, and nothing turns a failure into a message to a person.
 
 `infra/healthcheck.sh` asks `/api/health` through the public address and prints one line (`healthcheck: ok ...` or `healthcheck: FAILED ...`), exiting non-zero on failure. It is `curl`, not a monitoring service.
 
@@ -643,40 +716,47 @@ Also not covered: a failed backup or cleanup timer, a full disk, an expiring cer
 
 ## 22. Where every procedure stands
 
+"Review container" means: run in Docker during the Block 8 review, with a test certificate for `localhost`. It is not a real server.
+
 | Procedure | Status |
 |---|---|
 | Database on a developer machine, migrate, seed, reset (sections 2 to 5) | Practiced (Block 3) |
 | Back up and restore a database on a developer machine (sections 6 and 7) | Practiced (Block 3) |
-| Backup and restore inside the Docker containers, and on a server | **NOT YET PRACTICED** |
-| Move the sync counter forward after a restore | **NOT YET PRACTICED** anywhere |
+| The developer stack in containers (`pnpm docker:up`) | Practiced in the review container: sign up, timer, save, and the entry showing in a second browser |
+| Backup and restore inside the Docker containers (section 16) | Practiced in the review container. **Not yet on a real server** |
+| Move the sync counter forward after a restore | Practiced in the review container |
 | `pnpm db:cleanup` against a local database | Practiced on a developer machine, with automated tests |
-| Cleanup and backup timers on a server | **NOT YET PRACTICED** |
-| First-time server setup (section 13) | **NOT YET PRACTICED** |
-| Deploy, and the automatic return to the previous version (sections 14 and 15) | **NOT YET PRACTICED** (control flow tried with stand-in commands only) |
-| Restore on the server (section 16) | **NOT YET PRACTICED** |
-| Rotate database passwords (section 17) | **NOT YET PRACTICED** |
+| `backup-scheduled.sh` and `cleanup-scheduled.sh` | Practiced by hand in the review container |
+| Cleanup and backup timers (systemd) | **NOT YET PRACTICED.** Checked for syntax only; not installed anywhere |
+| First-time server setup (section 13) | Partly: the settings file and first deploy in the review container. **NOT YET PRACTICED on a real server** |
+| Practice stack on your own computer (section 13a) | Practiced in the review container |
+| Deploy, and the automatic return to the previous version (sections 14 and 15) | Practiced in the review container. **Not yet on a real server** |
+| Going back by hand (section 15, steps 2 to 4) | **NOT YET PRACTICED** |
+| Restore on the server (section 16) | Practiced in the review container (drill and live). **Not yet on a real server** |
+| Rotate database passwords (section 17) | Practiced in the review container |
 | Rotate `CODE_LOOKUP_SECRET` | Not done on purpose: see section 17 |
-| Lock and unlock an account (section 18) | **NOT YET PRACTICED** |
-| Read the logs (section 19) | **NOT YET PRACTICED** |
-| Uptime check and alert (section 21) | **NOT YET PRACTICED**; no one is alerted |
-| HTTPS certificate, redirect from 80 to 443 | **NOT YET PRACTICED** |
-| Cache and security headers on a live server (section 11) | **NOT YET PRACTICED** |
+| Lock and unlock an account (section 18) | Practiced in the review container |
+| Read the logs (section 19) | Practiced in the review container. Caddy's error lines still to check on a real server |
+| `infra/healthcheck.sh` (section 21) | Practiced in the review container. From another machine: **NOT YET PRACTICED**. No one is alerted |
+| HTTPS, redirect from 80 to 443, HSTS | Practiced in the review container with a test certificate. **NOT YET PRACTICED** with a public certificate |
+| Cache and security headers (section 11) | Read in the review container. **Not yet on a real server** |
 
 ## 23. Practice list for the first real server
 
-Do these on the test site, in this order, and change this page where reality differs. Each one that works moves a row in section 22 to "practiced", with who did it and on which server.
+Do these on the test site, in this order, and change this page where reality differs. Each one that works moves a row in section 22 to "practiced on a real server", with who did it and on which server. Most of them were already done in the review container (section 22); this list is about doing them where it counts.
 
-1. `docker compose ... config --quiet`, then `docker compose ... --profile tools build`. Watch for an image tag that does not exist, then pin every image by digest (the top of `infra/docker-compose.prod.yml` says how).
+1. `docker compose ... config --quiet`, then `docker compose ... --profile tools build`. Then pin every image by digest (the top of `infra/docker-compose.prod.yml` says how).
 2. `infra/deploy.sh <version>` from empty. Open the site on a phone. Look for the "Test site. Sample data." strip if `SITE_BANNER=test`.
-3. Section 13, step 8 and 9: ports and headers from outside.
-4. Run both scheduled scripts by hand, then install the timers.
-5. Deploy a second version that is deliberately broken (for example, one with a wrong `API_PORT` in a throwaway branch) and watch `deploy.sh` return to the first. Write down what it said.
-6. The restore drill in section 16, timed.
+3. Section 13, step 8 and section 11: ports and headers from outside, with the public certificate.
+4. Run both scheduled scripts by hand, then install the timers and read what they did the next day.
+5. Deploy a second version that is deliberately broken (for example, one with a wrong `API_PORT` in a throwaway branch) and watch `deploy.sh` return to the first. Write down what it said and how long the site was down.
+6. The restore drill in section 16, timed on real data.
 7. Rotate the app password (section 17).
 8. Lock and unlock a made-up account (section 18).
 9. Stop the database container and see what the site and the uptime check do.
+10. Run the uptime check from a different machine (section 21).
 
-If a container will not start, the first suspects are the `read_only`, `tmpfs` and `cap_drop` lines in the compose file, which could not be tested where they were written.
+If a container will not start, suspect its `read_only` and `tmpfs` lines first.
 
 ## 24. Who to call
 
