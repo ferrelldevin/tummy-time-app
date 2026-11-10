@@ -65,6 +65,8 @@ describe("When to call is one tap away from every screen", () => {
     "/start-tummy-time",
     "/baby-crying",
     "/lessons",
+    "/lessons/first-lesson",
+    "/lessons/no-such-lesson",
     "/log",
     "/when-to-call",
     "/no-such-page",
@@ -91,12 +93,12 @@ describe("When to call is one tap away from every screen", () => {
   });
 });
 
+// "/when-to-call", "/lessons" and "/lessons/:id" are real screens now (Block 5). They are tested
+// in pages/WhenToCall.test.tsx and pages/Lessons.test.tsx, and below.
 describe("placeholder screens", () => {
   const screens = [
     ["/start-tummy-time", en.startTummyTime.title],
     ["/baby-crying", en.babyCrying.title],
-    ["/when-to-call", en.whenToCall.title],
-    ["/lessons", en.lessons.title],
     ["/log", en.log.title],
   ] as const;
 
@@ -116,6 +118,40 @@ describe("placeholder screens", () => {
     expect(screen.getByRole("heading", { level: 1, name: en.notFound.title })).toBeDefined();
     expect(screen.getByRole("link", { name: en.notFound.backHome })).toBeDefined();
   });
+});
+
+describe("content screens", () => {
+  it("/lessons lists the lesson files and opens one", async () => {
+    renderAt("/lessons");
+    expect(await screen.findByRole("heading", { level: 1, name: en.lessons.title })).toBeDefined();
+    fireEvent.click(screen.getByRole("link", { name: "First lesson (placeholder)" }));
+    const heading = await screen.findByRole("heading", {
+      level: 1,
+      name: "First lesson (placeholder)",
+    });
+    expect(document.activeElement).toBe(heading);
+    expect(screen.getByText(en.draftLabel, { exact: false })).toBeDefined();
+  });
+
+  it("an unknown lesson id shows the not found screen", async () => {
+    renderAt("/lessons/no-such-lesson");
+    expect(await screen.findByRole("heading", { level: 1, name: en.notFound.title })).toBeDefined();
+  });
+
+  it("/when-to-call shows the emergency line and the draft label", () => {
+    renderAt("/when-to-call");
+    expect(screen.getByText(en.whenToCall.emergencyLine)).toBeDefined();
+    expect(screen.getByText(en.draftLabel, { exact: false })).toBeDefined();
+  });
+
+  it.each(["/lessons", "/lessons/first-lesson", "/lessons/no-such-lesson", "/when-to-call"])(
+    "%s has no axe violations",
+    async (path) => {
+      const { container } = renderAt(path);
+      await screen.findByRole("heading", { level: 1 });
+      expect(await axeViolations(container)).toEqual([]);
+    },
+  );
 });
 
 describe("navigation", () => {
