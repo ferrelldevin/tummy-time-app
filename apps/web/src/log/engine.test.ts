@@ -339,6 +339,36 @@ describe("the outbox", () => {
   });
 });
 
+describe("busy, for the update rule (src/update/)", () => {
+  it("is busy while a change is being saved here and while it is being sent, and not after", async () => {
+    const s = setup();
+    s.engine.start();
+    await settle();
+    expect(s.engine.isBusy()).toBe(false);
+    const adding = s.engine.add(body(60));
+    // The IndexedDB write has started and not finished.
+    expect(s.engine.isBusy()).toBe(true);
+    await adding;
+    // Saved here; the send to the server starts at once.
+    expect(s.engine.isBusy()).toBe(true);
+    await settle();
+    expect(s.server.rows.size).toBe(1);
+    expect(s.engine.isBusy()).toBe(false);
+  });
+
+  it("is not busy while it only waits to try again", async () => {
+    const s = setup();
+    s.engine.start();
+    await settle();
+    s.server.state.down = true;
+    await s.engine.add(body(60));
+    await settle();
+    expect(s.timers.pending).toHaveLength(1);
+    expect(s.engine.getState().pending).toBe(1);
+    expect(s.engine.isBusy()).toBe(false);
+  });
+});
+
 describe("pulling", () => {
   it("pulls on start, pages while there is more, and stores the last rev", async () => {
     const s = setup();

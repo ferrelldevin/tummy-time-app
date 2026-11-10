@@ -22,6 +22,8 @@ function set(next: TimerState) {
 
 export const timer = {
   get: (): TimerState => state,
+  /** True while a tummy time is being timed. The app never reloads itself then (src/update/). */
+  isRunning: (): boolean => state.startedAtMs !== null,
   subscribe: (listener: () => void): (() => void) => {
     listeners.add(listener);
     return () => {
