@@ -1,5 +1,8 @@
 import { EMERGENCY_LINE } from "@tummy/shared";
 
+/** The language of the strings below, for dates and times shown with them. */
+export const locale = "en-US";
+
 /** All text shown on screen lives here, so it can be reviewed and translated in one place. */
 export const en = {
   appName: "Tummy Time",
@@ -26,7 +29,20 @@ export const en = {
   },
   startTummyTime: {
     title: "Start tummy time",
-    placeholder: "This screen is a placeholder. The real steps will go here.",
+    // GAP: a short safety reminder belongs on this screen (the style guide says lessons lead
+    // with "baby awake, always watched, on a firm, flat surface"). The exact words for this
+    // screen must come from the client's clinicians. Nothing medical is written here on purpose.
+    start: "Start",
+    stop: "Stop and save",
+    // Shown above the running time. The time itself is in words for screen readers.
+    timeLabel: "Time so far",
+    started: "The timer is running.",
+    // {time} is a length such as "5 minutes". "Every minute counts." is from the style guide.
+    saved: "Saved {time} of tummy time. Every minute counts.",
+    tooShort: "That was too short to save.",
+    tooLong: "That was more than 2 hours, so we did not save it. You can add the time yourself.",
+    addInstead: "Add a time yourself",
+    seeLog: "See your log",
   },
   babyCrying: {
     title: "Baby crying? Try this",
@@ -60,7 +76,49 @@ export const en = {
   },
   log: {
     title: "Log",
-    placeholder: "This screen is a placeholder. Your log will go here.",
+    start: "Start tummy time",
+    add: "Add a time",
+    // The three sync states, word for word from the build plan.
+    sync: {
+      local: "Saved on this phone",
+      saved: "Saved",
+      unreachable: "Can't reach the server. We'll try again.",
+    },
+    emptyTitle: "No tummy time yet",
+    emptyBody: "When you log tummy time, it will show here.",
+    today: "Today",
+    yesterday: "Yesterday",
+    // Screen reader text after "Delete", so each button says which time it deletes.
+    // {time} is a time of day, {length} a length such as "5 minutes".
+    entry: "{time}, {length}",
+    delete: "Delete",
+    deleted: "Deleted {entry}.",
+    undo: "Undo",
+    putBack: "Put back {entry}.",
+    notSaved: "This time could not be saved.",
+    savedFlash: "Saved. Every minute counts.",
+    // Lengths. {n} is a number of 2 or more.
+    minuteOne: "1 minute",
+    minutesMany: "{n} minutes",
+    secondOne: "1 second",
+    secondsMany: "{n} seconds",
+  },
+  addTime: {
+    title: "Add a time",
+    intro: "Add a tummy time you did not time with the app.",
+    dayLabel: "Day",
+    timeLabel: "Start time",
+    minutesLabel: "Minutes",
+    minutesHint: "A whole number from 1 to 120.",
+    submit: "Save",
+    errors: {
+      dayMissing: "Pick the day.",
+      timeMissing: "Pick the start time.",
+      minutesMissing: "Type how many minutes.",
+      minutesShape: "Minutes must be a whole number from 1 to 120.",
+      future: "That time has not happened yet. Pick a time that has passed.",
+      tooOld: "That day is more than a year ago. Pick a day in the last year.",
+    },
   },
   account: {
     headerSignIn: "Sign in",
@@ -132,6 +190,13 @@ export const en = {
       deletePinHint: "Type your PIN to say this is really you.",
       deleteSubmit: "Delete my account",
       working: "Please wait...",
+      // {n} is a number of 1 or more.
+      unsentOne: "1 tummy time is only on this phone. We could not save it yet.",
+      unsentMany: "{n} tummy times are only on this phone. We could not save them yet.",
+      unsentLossOne: "If you sign out now, it will be lost.",
+      unsentLossMany: "If you sign out now, they will be lost.",
+      stay: "Stay signed in",
+      signOutAnyway: "Sign out anyway",
     },
     pin: {
       show: "Show PIN",

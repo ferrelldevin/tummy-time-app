@@ -69,7 +69,7 @@ A security record of account events.
 | Where | What | Why | Cleared when |
 |---|---|---|---|
 | Cookie | Session token (HttpOnly, so page scripts cannot read it) | Stay signed in | Sign-out, expiry |
-| IndexedDB | This account's tummy logs, the outbox of unsent changes, the last `rev` seen | Work offline, sync | Sign-out, account deletion |
+| IndexedDB | This account's tummy logs (the same fields as the server, plus a "could not be saved" mark), the outbox of unsent changes (which entry, save or delete, and its order in line), the last `rev` seen | Work offline, sync | Sign-out here or everywhere, account deletion, the server saying this phone is no longer signed in, and before a new sign-in or sign-up |
 | Cache storage | App files and lesson content (no account data) | Open without signal | App update |
 
 ## In logs

@@ -3,10 +3,12 @@ import type { SyntheticEvent } from "react";
 import { useNavigate } from "react-router";
 import { deleteMeResponseSchema, signedOutResponseSchema } from "@tummy/shared";
 import { apiCall } from "../../api";
+import { Alert } from "../../components/Alert";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Page } from "../../components/Page";
 import { PinField } from "../../components/PinField";
+import { sendBeforeSignOut } from "../../log/local-data";
 import { useSession, type SignedOutReason } from "../../session";
 import { en } from "../../strings/en";
 import { cleanPin, ErrorSummary, failureText, pinProblem, useFocusAfterSubmit } from "./forms";
@@ -27,15 +29,35 @@ export function Account() {
   const deleteSummaryRef = useRef<HTMLDivElement>(null);
   const pinRef = useRef<HTMLInputElement>(null);
   const focusAfterSubmit = useFocusAfterSubmit();
+  const [unsent, setUnsent] = useState<{
+    count: number;
+    path: string;
+    reason: SignedOutReason;
+  } | null>(null);
+  const unsentRef = useRef<HTMLDivElement>(null);
 
   function done(reason: SignedOutReason) {
     markSignedOut(reason);
     void navigate("/signed-out");
   }
 
-  async function signOut(path: string, reason: SignedOutReason) {
+  /**
+   * Signing out deletes this phone's copy of the log. So first, try once to send any tummy
+   * times still waiting; if some could not be sent, say so and let the person choose.
+   */
+  async function signOut(path: string, reason: SignedOutReason, evenIfUnsent = false) {
     setBusy(true);
     setProblem(null);
+    setUnsent(null);
+    if (!evenIfUnsent) {
+      const left = await sendBeforeSignOut().catch(() => 0);
+      if (left > 0) {
+        setBusy(false);
+        setUnsent({ count: left, path, reason });
+        focusAfterSubmit(unsentRef);
+        return;
+      }
+    }
     const result = await apiCall(path, signedOutResponseSchema, { method: "POST" });
     setBusy(false);
     if (result.ok || result.error === "unauthorized") {
@@ -73,6 +95,30 @@ export function Account() {
   return (
     <Page title={t.title}>
       <ErrorSummary id={summaryId} problems={problem ? [problem] : []} ref={summaryRef} />
+      {unsent ? (
+        <div className="stack unsent-warning" ref={unsentRef} tabIndex={-1}>
+          <Alert kind="error">
+            {unsent.count === 1 ? t.unsentOne : t.unsentMany.replace("{n}", String(unsent.count))}{" "}
+            {unsent.count === 1 ? t.unsentLossOne : t.unsentLossMany}
+          </Alert>
+          <Button
+            block
+            onClick={() => {
+              setUnsent(null);
+            }}
+          >
+            {t.stay}
+          </Button>
+          <Button
+            variant="secondary"
+            block
+            disabled={busy}
+            onClick={() => void signOut(unsent.path, unsent.reason, true)}
+          >
+            {t.signOutAnyway}
+          </Button>
+        </div>
+      ) : null}
       <p>
         {t.signedIn}{" "}
         {phonesSignedIn > 1 ? t.manyPhones.replace("{n}", String(phonesSignedIn)) : t.onePhone}

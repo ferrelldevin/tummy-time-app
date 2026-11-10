@@ -146,6 +146,18 @@ To restore into a new, empty database (the safe way, and the way to test a backu
 4. Check the migrations are recorded: `DB_NAME=tummy_restore pnpm db:migrate` says the database is up to date.
 5. When you are done, remove the test copy as the administrator: `psql -h 127.0.0.1 -p "$DB_PORT" -U postgres -d postgres -c "DROP DATABASE tummy_restore"`.
 
+### After a restore: move the sync counter forward (Block 6)
+
+Phones remember the last sync number they saw. A restore takes the database back in time, so the counter may now be behind what some phones remember. New changes would then get numbers those phones think they already have, and the phones would skip them.
+
+Runs in: `psql`, connected as the migrator user, right after the restore and before the API starts
+
+```sql
+SELECT setval('tummy_logs_rev_seq', (SELECT COALESCE(MAX(rev), 0) FROM tummy_logs) + 1000000);
+```
+
+The exact jump does not matter. It only has to be larger than the number of changes lost. Entries a phone had that the restore lost stay on that phone until it signs out; they are not sent again. This step has not been practiced on a real restore yet. Block 8 adds it to the drill.
+
 ### The restore drill, as practiced in Block 3
 
 Done on a local PostgreSQL 16 with the seed loaded, following steps 6 and 7 above exactly:

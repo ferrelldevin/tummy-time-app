@@ -20,7 +20,11 @@ export interface Parser<T> {
 export async function apiCall<T>(
   path: string,
   schema: Parser<T>,
-  options: { method?: "GET" | "POST" | "DELETE"; body?: unknown; signal?: AbortSignal } = {},
+  options: {
+    method?: "GET" | "POST" | "PUT" | "DELETE";
+    body?: unknown;
+    signal?: AbortSignal;
+  } = {},
 ): Promise<ApiResult<T>> {
   const headers: Record<string, string> = { [API_REQUEST_HEADER]: API_REQUEST_HEADER_VALUE };
   if (options.body !== undefined) {

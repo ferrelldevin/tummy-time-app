@@ -4,7 +4,7 @@ One short page per decision that would be expensive to change later. Format afte
 
 **Status words:** Proposed (recommended, waiting on approval), Accepted, Superseded by NNNN.
 
-All seven are **Proposed** as of Nov 10, 2026. Dr. Gupta approves the platform; Devin approves the rest.
+All nine are **Proposed** as of Nov 10, 2026. Dr. Gupta approves the platform; Devin approves the rest.
 
 | # | Decision | Status |
 |---|---|---|
@@ -16,5 +16,6 @@ All seven are **Proposed** as of Nov 10, 2026. Dr. Gupta approves the platform; 
 | [0006](0006-content-as-files.md) | Lessons and the safety card are files, not code | Proposed |
 | [0007](0007-hosting.md) | Hosting: containers, temporary staging, then ODU | Proposed |
 | [0008](0008-postgresql-and-database-users.md) | PostgreSQL, two database users, database required at start-up | Proposed |
+| [0009](0009-rev-order-per-account.md) | One account's log writes are committed in rev order (account lock) | Proposed |
 
 To add one: copy the newest file, give it the next number, and add a row here. Never edit an Accepted record's decision; write a new one that supersedes it.

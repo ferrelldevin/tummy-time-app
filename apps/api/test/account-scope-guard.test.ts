@@ -29,7 +29,8 @@ export const ALLOWLIST = new Map<string, { tables: string[]; why: string }>(
   Object.entries({
     "db/schema.ts": { tables: Object.keys(GUARDED_TABLES), why: "defines the tables" },
     "db/account-scope.ts": {
-      // accounts: only to delete the signed-in account for good (deleteAccount), by its own ID.
+      // accounts: only by the signed-in account's own ID, to lock its row before a log write
+      // (ADR 0009) and to delete the account for good (deleteAccount).
       tables: ["tummyLogs", "sessions", "auditEvents", "accounts"],
       why: "the one door: adds the account filter to every query",
     },

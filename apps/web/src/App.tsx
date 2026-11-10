@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react";
+import type { ReactNode } from "react";
 import { Route, Routes } from "react-router";
 import { AppShell } from "./components/AppShell";
 import { LoadingState } from "./components/StateViews";
@@ -28,6 +29,24 @@ const LessonRoute = lazy(() =>
   import("./pages/ContentRoutes").then((m) => ({ default: m.LessonRoute })),
 );
 
+// The log screens need sign-in and load as their own file, with the sync engine and IndexedDB
+// code, so Home, Lessons and When to call never pay for them.
+const StartTummyTimeRoute = lazy(() =>
+  import("./pages/log/LogRoutes").then((m) => ({ default: m.StartTummyTime })),
+);
+const LogRoute = lazy(() => import("./pages/log/LogRoutes").then((m) => ({ default: m.LogPage })));
+const AddTimeRoute = lazy(() =>
+  import("./pages/log/LogRoutes").then((m) => ({ default: m.AddTime })),
+);
+
+function SignedInLazy({ children }: { children: ReactNode }) {
+  return (
+    <RequireSignIn>
+      <Suspense fallback={<LoadingState />}>{children}</Suspense>
+    </RequireSignIn>
+  );
+}
+
 export function App() {
   return (
     <SessionProvider>
@@ -44,7 +63,9 @@ function AppRoutes() {
         <Route
           path="start-tummy-time"
           element={
-            <Placeholder title={en.startTummyTime.title} text={en.startTummyTime.placeholder} />
+            <SignedInLazy>
+              <StartTummyTimeRoute />
+            </SignedInLazy>
           }
         />
         <Route
@@ -71,9 +92,17 @@ function AppRoutes() {
         <Route
           path="log"
           element={
-            <RequireSignIn>
-              <Placeholder title={en.log.title} text={en.log.placeholder} />
-            </RequireSignIn>
+            <SignedInLazy>
+              <LogRoute />
+            </SignedInLazy>
+          }
+        />
+        <Route
+          path="log/add"
+          element={
+            <SignedInLazy>
+              <AddTimeRoute />
+            </SignedInLazy>
           }
         />
         <Route path="welcome" element={<Welcome />} />

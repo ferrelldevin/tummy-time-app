@@ -36,5 +36,6 @@ export async function createAuth(options: CreateAuthOptions): Promise<AuthDeps> 
     sessions: sessionService(db, clock),
     checkPin,
     rateLimits: options.rateLimits ?? DEFAULT_AUTH_RATE_LIMITS,
+    clock,
   };
 }

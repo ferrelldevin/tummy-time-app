@@ -13,7 +13,8 @@ type Reply = { status: number; body: unknown } | "network-error";
 
 /**
  * A stand-in for the API in unit tests. Health is always fine. /api/me answers signed in or
- * signed out as set. Other answers come from `replies`, by "METHOD path".
+ * signed out as set, and so does a log pull (an empty log). Other answers come from `replies`,
+ * by "METHOD path".
  */
 export function stubApi(
   options: { signedIn?: boolean; phones?: number; replies?: Record<string, Reply[]> } = {},
@@ -47,6 +48,16 @@ export function stubApi(
       return Promise.resolve(
         signedIn
           ? Response.json({ signedIn: true, phonesSignedIn: options.phones ?? 1 })
+          : Response.json(
+              { error: { code: "unauthorized", message: "Please sign in." } },
+              { status: 401 },
+            ),
+      );
+    }
+    if (url.startsWith("/api/logs?") && method === "GET") {
+      return Promise.resolve(
+        signedIn
+          ? Response.json({ entries: [], latestRev: 0, more: false })
           : Response.json(
               { error: { code: "unauthorized", message: "Please sign in." } },
               { status: 401 },

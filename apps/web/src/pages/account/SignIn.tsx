@@ -8,6 +8,7 @@ import {
   signInFinishResponseSchema,
 } from "@tummy/shared";
 import { apiCall } from "../../api";
+import { wipeLocalData } from "../../log/local-data";
 import { Button } from "../../components/Button";
 import { Link } from "../../components/Link";
 import { Page } from "../../components/Page";
@@ -65,6 +66,9 @@ export function SignIn() {
     });
     if (result.ok) {
       setPin("");
+      // A new sign-in starts with an empty copy of the log, so nothing from an account that was
+      // signed in here before can be shown, or sent to this one.
+      await wipeLocalData();
       await refresh();
       setSubmitting(false);
       void navigate("/log");

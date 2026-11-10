@@ -36,6 +36,7 @@ Runtime libraries
 - argon2 (node-argon2) 0.45.1 by Ranieri Althoff (hashes and checks PINs with Argon2id; we write no hashing code ourselves). MIT. It binds the Argon2 reference C implementation by Daniel Dinu, Dmitry Khovratovich, Jean-Philippe Aumasson and Samuel Neves, which it ships inside the package: CC0 1.0 or Apache-2.0, at our option. Its dependencies: @phc/format 1.0.0, node-gyp-build 4.8.4, node-addon-api 8.9.2, cross-env 10.1.0 (with @epic-web/invariant and cross-spawn). All MIT. The package ships prebuilt binaries for Linux, macOS and Windows; pnpm does not run its install script, and none is needed.
 - @fastify/cookie 11.1.3 (reads and writes the session cookie), with its dependencies cookie 2.0.2 and fastify-plugin 6.0.1. MIT.
 - Node.js's built-in `node:crypto` (random bytes, HMAC-SHA-256, SHA-256, constant-time compare). MIT.
+- idb 8.0.4 by Jake Archibald (a small promise wrapper around the browser's IndexedDB, for the phone's copy of the log, its outbox and the last rev seen). ISC. No dependencies.
 
 Build and test tools
 - Vite and @vitejs/plugin-react (dev server and bundler). MIT.
@@ -45,6 +46,7 @@ Build and test tools
 - @types/pg (type definitions). MIT.
 - Vitest (unit and API tests). MIT.
 - jsdom (browser stand-in for unit tests). MIT.
+- fake-indexeddb 6.2.6 by Jeremy Scheff (an in-memory IndexedDB for the web app's unit tests, which run in jsdom). Apache-2.0. No dependencies.
 - @testing-library/react and @testing-library/dom (test React screens like a user). MIT.
 - Playwright Test (@playwright/test) (end-to-end tests). Apache-2.0.
 - @axe-core/playwright and axe-core (automatic accessibility scan, in browser tests and in component unit tests). MPL-2.0.

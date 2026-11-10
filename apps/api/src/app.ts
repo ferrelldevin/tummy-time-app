@@ -5,6 +5,7 @@ import { healthResponseSchema } from "@tummy/shared";
 import { registerAuthRoutes, type AuthDeps } from "./auth/routes.js";
 import type { DbHandle } from "./db/client.js";
 import type { Env } from "./env.js";
+import { registerLogRoutes } from "./logs/routes.js";
 import { applyApiRules, defineRoute, notFoundHandler } from "./http/api-rules.js";
 import {
   BODY_LIMIT_BYTES,
@@ -25,7 +26,10 @@ export interface AppOptions extends Partial<Pick<Env, "LOG_LEVEL" | "API_TRUST_P
    * Without one, every such request is refused.
    */
   appOrigin?: string;
-  /** Sign-in, sessions and the account routes (src/auth). Built with createAuth(). */
+  /**
+   * Sign-in, sessions and the account routes (src/auth). Built with createAuth(). The tummy time
+   * log routes (src/logs) need a signed-in account, so they come with it.
+   */
   auth?: AuthDeps;
   /** Extra routes, added after the rules and limits are in place (tests use this). */
   routes?: (app: FastifyInstance) => void;
@@ -70,6 +74,7 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
 
     if (options.auth) {
       registerAuthRoutes(scope, options.auth);
+      registerLogRoutes(scope, options.auth);
     }
     options.routes?.(scope);
     done();

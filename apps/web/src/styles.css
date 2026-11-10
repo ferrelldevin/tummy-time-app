@@ -428,3 +428,89 @@ p {
 .error-summary__item {
   display: block;
 }
+
+/* Tummy time log (Block 6) */
+.sync-status {
+  margin: 0;
+  min-height: 1.5em;
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+.timer-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-2);
+  text-align: center;
+}
+.timer-panel__label {
+  margin: 0;
+  font-weight: 700;
+}
+.timer-panel__time {
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+/* Much bigger than the 44 px minimum: it is tapped with one hand, often while holding a baby. */
+.timer-panel__button {
+  min-height: 6rem;
+  font-size: var(--font-size-h2);
+}
+.timer-panel__message {
+  margin: 0;
+  min-height: 1.5em;
+}
+.log-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.log-notice > p {
+  margin: 0;
+  flex: 1 1 12rem;
+}
+.log-day > h2 {
+  margin: var(--space-5) 0 var(--space-2);
+  font-size: var(--font-size-h3);
+}
+.log-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.log-entry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+.log-entry__text {
+  margin: 0;
+  flex: 1 1 10rem;
+}
+.log-entry__time {
+  font-weight: 700;
+}
+.log-entry__warning {
+  margin: 0;
+  flex-basis: 100%;
+  font-weight: 700;
+}
+.unsent-warning:focus {
+  outline: none;
+}
+.unsent-warning:focus-visible {
+  outline: var(--focus-width) solid var(--color-focus);
+  outline-offset: 0.125rem;
+}

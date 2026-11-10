@@ -3,6 +3,7 @@ import type { SyntheticEvent } from "react";
 import { useNavigate } from "react-router";
 import { signUpFinishResponseSchema } from "@tummy/shared";
 import { apiCall } from "../../api";
+import { wipeLocalData } from "../../log/local-data";
 import { Button } from "../../components/Button";
 import { Link } from "../../components/Link";
 import { Page } from "../../components/Page";
@@ -68,7 +69,8 @@ export function CreateAccount() {
       setPin("");
       setConfirm("");
       setFamilyCode(result.data.familyCode);
-      void refresh();
+      // A new account starts with an empty copy of the log on this phone (see SignIn.tsx).
+      void wipeLocalData().then(refresh);
       return;
     }
     if (result.error === "weak_pin") {
