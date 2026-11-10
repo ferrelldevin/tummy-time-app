@@ -33,17 +33,22 @@ Built by Dr. Ajay Gupta's Hands-On Lab at Old Dominion University for the client
 - [pnpm](https://pnpm.io/) 10. Run `corepack enable` once and Node fetches the right version for you.
 - Optional: [Docker](https://www.docker.com/) to run the whole stack in containers, and [gitleaks](https://github.com/gitleaks/gitleaks#installing) so the pre-commit hook can scan for secrets (the hook says so if it is missing; CI always scans).
 
-### Run it in five commands
+### Run it
+
+The API needs a PostgreSQL database. [docs/runbook.md](docs/runbook.md) shows how to get one on your machine, with or without Docker, and how to create its two users. Then:
 
 ```sh
 git clone https://github.com/ferrelldevin/tummy-time.git && cd tummy-time
 corepack enable
 pnpm install --frozen-lockfile
-cp .env.example .env
+cp .env.example .env    # then fill in the two DB_ passwords (see the runbook)
+# create the database users: docs/runbook.md, section 2
+pnpm db:migrate
+pnpm db:seed
 pnpm dev
 ```
 
-Open http://localhost:5173. You should see "Tummy Time" and "Server is reachable". The API listens on port 3001. If the API says its settings are not right, `.env` is missing or incomplete.
+Open http://localhost:5173. You should see "Tummy Time" and "Server is reachable". The API listens on port 3001. If the API says its settings are not right, `.env` is missing or incomplete; if it says the database cannot be reached, start the database.
 
 ### Run the tests
 
@@ -51,7 +56,8 @@ Open http://localhost:5173. You should see "Tummy Time" and "Server is reachable
 |---|---|
 | Lint (ESLint with accessibility and security rules, and Prettier) | `pnpm lint` |
 | Types (TypeScript strict) | `pnpm typecheck` |
-| Unit and API tests (Vitest) | `pnpm test` |
+| Unit and API tests (Vitest; the API tests need the database) | `pnpm test` |
+| Database: migrate, add sample data, start again from empty | `pnpm db:migrate`, `pnpm db:seed`, `NODE_ENV=development pnpm db:reset` |
 | Phone-sized end-to-end test with the axe accessibility scan (Playwright) | `pnpm test:e2e` |
 | Production build | `pnpm build` |
 | First-load size budget (run after `pnpm build`) | `pnpm check:size` |
@@ -60,11 +66,12 @@ The first time you run the end-to-end test on your own machine, install the brow
 
 ### Run it in containers (optional)
 
-Fill in the three `POSTGRES_` lines in `.env` with values you make up, then `pnpm docker:up`. The app is at http://localhost:8080.
+Fill in the two `POSTGRES_` lines and the two `DB_` passwords in `.env` with values you make up, then `pnpm docker:up`. The database container creates its users on its first start, a one-off container runs the migrations, then the API and the web server start. The app is at http://localhost:8080.
 
 ### Where things are
 
-- `apps/web` is the phone app (React). `apps/api` is the server (Fastify). `packages/shared` is code both use. `content/` will hold lessons. `infra/` holds the container files.
+- `apps/web` is the phone app (React). `apps/api` is the server (Fastify). `packages/shared` is code both use. `content/` holds lessons. `infra/` holds the container files, the database user setup (`infra/db/`) and the backup and restore scripts.
+- How to run the database, back it up and restore it: [docs/runbook.md](docs/runbook.md).
 - Plans, decisions, the data map and the threat model are in `docs/` (see the table at the top of this page). Decisions are in `docs/adr/`.
 - A step-by-step account of how each block was built is in `docs/walkthrough/`.
 
