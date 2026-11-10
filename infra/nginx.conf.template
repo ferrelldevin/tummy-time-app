@@ -6,6 +6,10 @@ server {
   server_name _;
   root /usr/share/nginx/html;
   index index.html;
+  # Do not tell visitors which nginx version this is.
+  server_tokens off;
+  # Our text files are UTF-8; say so in Content-Type.
+  charset utf-8;
   access_log /var/log/nginx/access.log tummy;
 
   # Same-origin API: the browser only ever talks to this server.

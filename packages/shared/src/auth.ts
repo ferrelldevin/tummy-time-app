@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "./zod.js";
 import { FAMILY_CODE_INPUT_MAX, PIN_PATTERN } from "./family-code.js";
 
 /**

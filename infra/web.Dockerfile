@@ -9,6 +9,8 @@ COPY apps/web/package.json apps/web/
 RUN pnpm install --frozen-lockfile --ignore-scripts
 COPY packages/shared packages/shared
 COPY apps/web apps/web
+# The lessons and the When to call card. The build compiles them into the app's files.
+COPY content content
 RUN pnpm --filter @tummy/shared build && pnpm --filter @tummy/web exec vite build
 
 FROM nginx:1.31.2-alpine
