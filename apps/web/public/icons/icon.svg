@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- PLACEHOLDER ICON, made for this repo from the design tokens (color-primary,
+       color-on-primary, color-bg in src/design/tokens.css). Not the client's logo: none
+       exists yet.
+       A plain round shape and a bar, all inside the middle 60% so it also works as a
+       maskable icon. Rendered to PNG by scripts/render-icons.mjs. -->
+  <rect width="512" height="512" fill="#0a5a6a"/>
+  <circle cx="196" cy="226" r="54" fill="#ffffff"/>
+  <rect x="150" y="296" width="212" height="44" rx="22" fill="#ffffff"/>
+  <rect x="270" y="252" width="92" height="44" rx="22" fill="#fbf9f6"/>
+</svg>

@@ -70,7 +70,7 @@ A security record of account events.
 |---|---|---|---|
 | Cookie | Session token (HttpOnly, so page scripts cannot read it) | Stay signed in | Sign-out, expiry |
 | IndexedDB | This account's tummy logs (the same fields as the server, plus a "could not be saved" mark), the outbox of unsent changes (which entry, save or delete, and its order in line), the last `rev` seen | Work offline, sync | Sign-out here or everywhere, account deletion, the server saying this phone is no longer signed in, and before a new sign-in or sign-up |
-| Cache storage | App files and lesson content (no account data) | Open without signal | App update |
+| Cache storage | The app's own built files only: page, scripts (lessons and When to call are compiled into them), styles, manifest, icons. Never an answer from the API; a build check and a browser test enforce that | Open without signal | Replaced as a whole when the app updates. Kept on sign-out, because it holds no account data |
 
 ## In logs
 

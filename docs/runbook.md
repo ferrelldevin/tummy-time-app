@@ -221,3 +221,19 @@ node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"
 On your own machine, losing the key only costs your local test accounts: run `NODE_ENV=development pnpm db:reset`, then migrate and seed again.
 
 Each PIN check uses about 46 MB of memory for under a tenth of a second, and at most 4 run at once. Leave about 200 MB of room for the API on the server.
+
+## 11. Checks owed on the first real server (Block 7, done in Block 8)
+
+The caching rules in `infra/nginx.conf.template` have never run. On the first server, before anyone uses it:
+
+Runs in: a terminal that can reach the server. Replace the address.
+
+```bash
+for p in / /index.html /sw.js /manifest.webmanifest; do curl -sI "https://SERVER$p" | grep -i -E "^HTTP|cache-control|content-security-policy|content-type"; done
+```
+
+- `/`, `/index.html`, `/sw.js` and the manifest must say `Cache-Control: no-cache`. If `sw.js` is cached, phones do not hear about new versions.
+- One file under `/assets/` must say `max-age=31536000, immutable`.
+- Every one must carry the Content-Security-Policy line.
+- Set `TUMMY_BUILD_ID` to the commit when building, so a phone's version can be read from the page.
+- Keep the previous release's `/assets/` files for one release. A phone part-way through an update may still ask for one.

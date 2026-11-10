@@ -37,6 +37,14 @@ describe("timer maths", () => {
     expect(timer.stop(3000)).toBeNull();
   });
 
+  it("says whether it is running, for the rule that never reloads under a timer", () => {
+    expect(timer.isRunning()).toBe(false);
+    timer.start(1000);
+    expect(timer.isRunning()).toBe(true);
+    timer.stop(2000);
+    expect(timer.isRunning()).toBe(false);
+  });
+
   it("tells whoever listens when it starts and stops", () => {
     const seen: (number | null)[] = [];
     const off = timer.subscribe(() => seen.push(timer.get().startedAtMs));

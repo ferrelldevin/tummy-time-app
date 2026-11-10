@@ -42,6 +42,11 @@ export interface LogSync {
   restore(entry: LocalEntry): Promise<void>;
   /** Tries once, now, to send everything queued. Answers how many changes are still unsent. */
   sendNow(): Promise<number>;
+  /**
+   * True while a change is being saved on this phone, or a send or pull is under way. The app
+   * never reloads itself then (src/update/), so no save is cut off half way.
+   */
+  isBusy(): boolean;
 }
 
 /** What the engine needs from the outside world. Tests pass their own. */
@@ -117,6 +122,8 @@ export function createLogSync(deps: SyncDeps): LogSync {
   let retryHandle: unknown = null;
   let running: Promise<void> | null = null;
   let again = false;
+  /** Changes being written to IndexedDB right now (see change()). */
+  let saving = 0;
 
   function emit(next: SyncState) {
     state = next;
@@ -301,10 +308,15 @@ export function createLogSync(deps: SyncDeps): LogSync {
   }
 
   async function change(entry: LocalEntry, outbox: Parameters<LogStore["saveChange"]>[1]) {
-    const s = await getStore();
-    if (stopped) throw new Error("Sync has stopped.");
-    await s.saveChange(entry, outbox);
-    await refresh();
+    saving += 1;
+    try {
+      const s = await getStore();
+      if (stopped) throw new Error("Sync has stopped.");
+      await s.saveChange(entry, outbox);
+      await refresh();
+    } finally {
+      saving -= 1;
+    }
     sync();
   }
 
@@ -373,5 +385,7 @@ export function createLogSync(deps: SyncDeps): LogSync {
         return s.pendingCount();
       });
     },
+
+    isBusy: () => saving > 0 || running !== null,
   };
 }

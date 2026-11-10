@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Outlet, useLocation } from "react-router";
 import { useSession } from "../session";
 import { en } from "../strings/en";
@@ -8,8 +8,13 @@ import { BottomBar } from "./BottomBar";
 import { NavigatedContext } from "./Page";
 import { SkipLink } from "./SkipLink";
 import { OfflineNotice } from "./StateViews";
+import { UpdateNotice } from "../update/UpdateNotice";
+import { screenChanged } from "../update/updates";
 
-/** The frame around every screen: skip link, header, main area, offline notice, bottom bar. */
+/**
+ * The frame around every screen: skip link, header, main area with the update and offline
+ * notices, bottom bar.
+ */
 export function AppShell() {
   const { key } = useLocation();
   const firstKey = useRef(key);
@@ -20,6 +25,11 @@ export function AppShell() {
   }
   const online = useOnline();
   const { status } = useSession();
+
+  // Moving to another screen is one of the safe moments to apply a waiting update (src/update/).
+  useEffect(() => {
+    if (key !== firstKey.current) screenChanged();
+  }, [key]);
 
   return (
     <NavigatedContext.Provider value={navigated}>
@@ -41,6 +51,7 @@ export function AppShell() {
             )}
           </header>
           <main id="main" className="app-main" tabIndex={-1}>
+            <UpdateNotice />
             {online ? null : <OfflineNotice />}
             <Outlet />
           </main>

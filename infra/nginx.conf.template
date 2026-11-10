@@ -19,19 +19,40 @@ server {
     proxy_set_header Host $host;
   }
 
-  # The page and its files. These headers are the page's own; the API sets its own above.
-  # - Content-Security-Policy: scripts, styles, images and requests only from this server.
-  #   No inline script, no plugins, no framing, no <base> tricks.
-  # - Strict-Transport-Security only takes effect over HTTPS, which arrives with the real
-  #   certificate in Block 8. Browsers ignore it over plain HTTP, so it is safe to send now.
-  # Not yet seen running in a container (no Docker where this was written): Block 8 checks them.
+  # The page and its files. Their security headers are in nginx-security-headers.conf, included
+  # in each location below (nginx forgets inherited add_header lines in a location that adds
+  # its own). The API sets its own, above.
+  #
+  # HTTP caching (Block 7). The service worker keeps the app's files on the phone; these rules
+  # make sure a new version is seen as soon as it is deployed:
+  # - Hashed build files (/assets/) never change under the same name: cached for a year.
+  #   A file that is not there is a 404, never the page, so an old version asking for a file
+  #   that is gone fails plainly instead of getting HTML.
+  # - Everything else (sw.js, index.html, the manifest, workbox-*.js, icons) is "no-cache":
+  #   the browser may keep it but must ask this server first, every time. sw.js above all:
+  #   if it were cached, phones would not hear about a new version.
+  # Cache-Control is left off error answers (no "always"), so a 404 is never cached for a year.
+  #
+  # NOT YET RUN: there is no Docker or nginx where this was written, so not even "nginx -t".
+  # Block 8 must run it and check every header on /, /index.html, /sw.js, /manifest.webmanifest
+  # and one /assets/ file with curl against the running container.
+  location /assets/ {
+    include /etc/nginx/snippets/tummy-security-headers.conf;
+    add_header Cache-Control "public, max-age=31536000, immutable";
+    try_files $uri =404;
+  }
+
+  location = /manifest.webmanifest {
+    include /etc/nginx/snippets/tummy-security-headers.conf;
+    add_header Cache-Control "no-cache";
+    # Not every nginx mime.types lists .webmanifest; say what it is here only.
+    types { }
+    default_type application/manifest+json;
+  }
+
   location / {
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; media-src 'self'; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'" always;
-    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header X-Frame-Options "DENY" always;
-    add_header Referrer-Policy "no-referrer" always;
-    add_header Cross-Origin-Opener-Policy "same-origin" always;
+    include /etc/nginx/snippets/tummy-security-headers.conf;
+    add_header Cache-Control "no-cache";
     try_files $uri /index.html;
   }
 }

@@ -26,6 +26,7 @@ export const en = {
     intro: "Pick what you need right now.",
     startTummyTime: "Start tummy time",
     babyCrying: "Baby crying? Try this",
+    addToHomeScreen: "Add Tummy Time to your home screen",
   },
   startTummyTime: {
     title: "Start tummy time",
@@ -127,6 +128,7 @@ export const en = {
       title: "Welcome",
       intro: "Sign in to keep a log of tummy time. Your log can be on more than one phone.",
       open: "You do not need to sign in to read lessons or When to call.",
+      needsConnection: "You need a connection to sign in or create an account.",
       createAccount: "Create account",
       signIn: "Sign in",
     },
@@ -140,6 +142,8 @@ export const en = {
       confirmLabel: "Type the PIN again",
       submit: "Create account",
       submitting: "Creating your account...",
+      needsConnection:
+        "You need a connection to create an account. Try again when you are back online.",
       haveAccount: "Already have a family code?",
       signInInstead: "Sign in",
     },
@@ -163,6 +167,7 @@ export const en = {
       pinHint: "6 numbers.",
       submit: "Sign in",
       submitting: "Signing in...",
+      needsConnection: "You need a connection to sign in. Try again when you are back online.",
       noAccount: "New here?",
       createInstead: "Create account",
     },
@@ -181,6 +186,11 @@ export const en = {
       onePhone: "Signed in on 1 phone.",
       // {n} is replaced with a number of 2 or more.
       manyPhones: "Signed in on {n} phones.",
+      // Opened with no signal: the server has not been asked yet.
+      checkLater: "We will check with the server when you are back online.",
+      needsConnection:
+        "You need a connection to sign out or delete your account. You are still signed in on this phone.",
+      addToHomeScreen: "Add Tummy Time to your home screen",
       signOut: "Sign out on this phone",
       signOutEverywhere: "Sign out on all phones",
       everywhereHint: "Use this if a phone is lost or someone should no longer see your log.",
@@ -217,6 +227,40 @@ export const en = {
       network: "We could not reach the server. Please check your connection and try again.",
       unexpected: "Something went wrong. Please try again.",
     },
+  },
+  update: {
+    // Shown at the top of every screen when a new version of the app is on this phone.
+    title: "Update available.",
+    body: "Update now to get the newest version of the app and its lessons.",
+    button: "Update now",
+    updating: "Updating...",
+    stopTimerFirst: "Stop the timer first. Then you can update.",
+  },
+  install: {
+    title: "Add to your home screen",
+    intro: "You can put Tummy Time on your home screen, like an app. Then it opens with one tap.",
+    offline:
+      "Open the app once with a signal. After that, lessons and When to call open with no signal too.",
+    // A person must check these steps on a real iPhone and a real Android phone whenever the
+    // phones change their menus. They name the buttons, not where they are, on purpose.
+    iphoneTitle: "On an iPhone",
+    iphoneSteps: [
+      "Open Tummy Time in Safari.",
+      "Tap the Share button. It looks like a square with an arrow pointing up.",
+      "Tap Add to Home Screen. You may need to scroll down to find it.",
+      "Tap Add.",
+    ],
+    androidTitle: "On an Android phone",
+    androidSteps: [
+      "Open Tummy Time in Chrome.",
+      "Tap the menu button. It looks like three dots.",
+      "Tap Add to Home screen or Install app.",
+      "Tap Install or Add to finish.",
+    ],
+    done: "Look for Tummy Time on your home screen. Tap it to open the app.",
+    // Only where the browser offers to install (Chrome on Android, for example).
+    canInstall: "This phone can add the app for you.",
+    installButton: "Install the app",
   },
   notFound: {
     title: "Page not found",

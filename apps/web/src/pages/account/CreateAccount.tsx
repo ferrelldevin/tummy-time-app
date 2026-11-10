@@ -10,7 +10,15 @@ import { Page } from "../../components/Page";
 import { PinField } from "../../components/PinField";
 import { useSession } from "../../session";
 import { en } from "../../strings/en";
-import { cleanPin, ErrorSummary, failureText, pinProblem, useFocusAfterSubmit } from "./forms";
+import { useOnline } from "../../useOnline";
+import {
+  cleanPin,
+  ErrorSummary,
+  failureText,
+  NeedsConnection,
+  pinProblem,
+  useFocusAfterSubmit,
+} from "./forms";
 import { YourFamilyCode } from "./YourFamilyCode";
 
 const t = en.account.create;
@@ -29,7 +37,9 @@ export function CreateAccount() {
   const pinRef = useRef<HTMLInputElement>(null);
   const confirmRef = useRef<HTMLInputElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
+  const offlineRef = useRef<HTMLDivElement>(null);
   const focusAfterSubmit = useFocusAfterSubmit();
+  const online = useOnline();
 
   if (familyCode !== null) {
     return (
@@ -44,6 +54,11 @@ export function CreateAccount() {
 
   async function submit(event: SyntheticEvent) {
     event.preventDefault();
+    if (!online) {
+      // Creating an account needs the server. Say so; keep what was typed.
+      focusAfterSubmit(offlineRef);
+      return;
+    }
     const next: { pin?: string; confirm?: string } = {};
     const pinError = pinProblem(pin);
     if (pinError) next.pin = pinError;
@@ -87,6 +102,7 @@ export function CreateAccount() {
     <Page title={t.title}>
       <p>{t.intro}</p>
       <p>{t.notAdvice}</p>
+      {online ? null : <NeedsConnection text={t.needsConnection} ref={offlineRef} />}
       <form className="stack" noValidate onSubmit={(e) => void submit(e)}>
         <ErrorSummary id={summaryId} problems={problems} ref={summaryRef} />
         <PinField

@@ -6,19 +6,30 @@ import { apiCall } from "../../api";
 import { Alert } from "../../components/Alert";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
+import { Link } from "../../components/Link";
 import { Page } from "../../components/Page";
 import { PinField } from "../../components/PinField";
 import { sendBeforeSignOut } from "../../log/local-data";
 import { useSession, type SignedOutReason } from "../../session";
 import { en } from "../../strings/en";
-import { cleanPin, ErrorSummary, failureText, pinProblem, useFocusAfterSubmit } from "./forms";
+import { useOnline } from "../../useOnline";
+import {
+  cleanPin,
+  ErrorSummary,
+  failureText,
+  NeedsConnection,
+  pinProblem,
+  useFocusAfterSubmit,
+} from "./forms";
 
 const t = en.account.manage;
 
 /** Signed in only (see RequireSignIn). Sign out here, everywhere, or delete the account. */
 export function Account() {
   const navigate = useNavigate();
-  const { phonesSignedIn, markSignedOut } = useSession();
+  const { phonesSignedIn, confirmed, markSignedOut } = useSession();
+  const online = useOnline();
+  const offlineRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [pin, setPin] = useState("");
@@ -46,6 +57,13 @@ export function Account() {
    * times still waiting; if some could not be sent, say so and let the person choose.
    */
   async function signOut(path: string, reason: SignedOutReason, evenIfUnsent = false) {
+    if (!online) {
+      // The server must end the session. Signing out offline would only delete this phone's
+      // copy and leave the session alive, so nothing happens but the sentence that says so.
+      setUnsent(null);
+      focusAfterSubmit(offlineRef);
+      return;
+    }
     setBusy(true);
     setProblem(null);
     setUnsent(null);
@@ -77,6 +95,10 @@ export function Account() {
       focusAfterSubmit(pinRef);
       return;
     }
+    if (!online) {
+      focusAfterSubmit(offlineRef);
+      return;
+    }
     setBusy(true);
     const result = await apiCall("/api/me", deleteMeResponseSchema, {
       method: "DELETE",
@@ -94,6 +116,7 @@ export function Account() {
 
   return (
     <Page title={t.title}>
+      {online ? null : <NeedsConnection text={t.needsConnection} ref={offlineRef} />}
       <ErrorSummary id={summaryId} problems={problem ? [problem] : []} ref={summaryRef} />
       {unsent ? (
         <div className="stack unsent-warning" ref={unsentRef} tabIndex={-1}>
@@ -121,7 +144,11 @@ export function Account() {
       ) : null}
       <p>
         {t.signedIn}{" "}
-        {phonesSignedIn > 1 ? t.manyPhones.replace("{n}", String(phonesSignedIn)) : t.onePhone}
+        {!confirmed
+          ? t.checkLater
+          : phonesSignedIn > 1
+            ? t.manyPhones.replace("{n}", String(phonesSignedIn))
+            : t.onePhone}
       </p>
       <Button
         block
@@ -163,6 +190,9 @@ export function Account() {
           </Button>
         </form>
       </Card>
+      <p>
+        <Link to="/add-to-home-screen">{t.addToHomeScreen}</Link>
+      </p>
     </Page>
   );
 }

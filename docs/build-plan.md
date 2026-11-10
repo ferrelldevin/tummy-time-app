@@ -606,7 +606,7 @@ Done when
 - Installed to the home screen on a real iPhone and a real Android phone, and opened in airplane mode.
 - An entry made offline appears on the second phone after the first reconnects.
 - After sign-out, nothing from the account can be read on the phone, checked in the browser's storage tools.
-- Lighthouse on a simulated mid-range phone: performance 90 or better, accessibility 100, PWA installable.
+- Lighthouse on a simulated mid-range phone: performance 90 or better, accessibility 100. Lighthouse dropped its installable check in version 12, so installability is checked with the browser's own report (no installability errors).
 
 Stop and ask if
 
