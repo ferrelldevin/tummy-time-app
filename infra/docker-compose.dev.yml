@@ -1,0 +1,8 @@
+# Development only: publishes the database on this machine's 127.0.0.1 so `pnpm dev`,
+# `pnpm test` and `pnpm db:migrate` on your machine can reach it. Never use this file on a server.
+#   docker compose --env-file .env -f infra/docker-compose.yml -f infra/docker-compose.dev.yml up -d db
+# (or `pnpm db:up`).
+services:
+  db:
+    ports:
+      - "127.0.0.1:${DB_PORT:-5432}:5432"

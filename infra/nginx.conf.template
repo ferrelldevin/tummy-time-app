@@ -1,12 +1,22 @@
+# Access log without the client's network address (docs/data-map.md, "In logs").
+log_format tummy '$request_method $uri $status $request_time';
+
 server {
   listen 80;
   server_name _;
   root /usr/share/nginx/html;
   index index.html;
+  access_log /var/log/nginx/access.log tummy;
 
   # Same-origin API: the browser only ever talks to this server.
+  # The API sets its own security headers (CSP, HSTS, nosniff, frame denial, referrer policy,
+  # no-store); nginx passes them through untouched and adds none of its own to API answers.
   location /api/ {
     proxy_pass http://api:${API_PORT};
+    # Replace, never append, so a client cannot plant a fake address for the rate limiter.
+    # The API reads it with API_TRUST_PROXY_HOPS=1 and keeps it in memory only.
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header Host $host;
   }
 
   location / {

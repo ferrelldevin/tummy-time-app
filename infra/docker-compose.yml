@@ -1,22 +1,53 @@
 # Run the whole stack in containers:
 #   docker compose --env-file .env -f infra/docker-compose.yml up --build
-# (or `pnpm docker:up`). Copy .env.example to .env first. For day-to-day work use `pnpm dev`.
+# (or `pnpm docker:up`). Copy .env.example to .env first and fill in every password.
+# For day-to-day work use `pnpm dev` with a database: docs/runbook.md shows both ways.
 name: tummy-time
 
 services:
   db:
     image: postgres:17.11-alpine
     environment:
+      # The container's administrator. Used only to create the two users below, on first start.
       POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
-      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      # Read by infra/db/init-roles.sh (through docker-init.sh) on the first start only.
+      DB_NAME: ${DB_NAME:?Set DB_NAME in .env}
+      DB_APP_USER: ${DB_APP_USER:?Set DB_APP_USER in .env}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:?Set DB_APP_PASSWORD in .env}
+      DB_MIGRATOR_USER: ${DB_MIGRATOR_USER:?Set DB_MIGRATOR_USER in .env}
+      DB_MIGRATOR_PASSWORD: ${DB_MIGRATOR_PASSWORD:?Set DB_MIGRATOR_PASSWORD in .env}
     volumes:
       - db-data:/var/lib/postgresql/data
+      - ./db:/tummy-db:ro
+      - ./db/docker-init.sh:/docker-entrypoint-initdb.d/10-tummy-users.sh:ro
+    # No ports: the database is reachable only from the other containers (threat model #24).
+    # infra/docker-compose.dev.yml publishes it on this machine's 127.0.0.1 for development.
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      # Over TCP on purpose: during first-start setup the server listens on its socket only,
+      # so this stays unhealthy until setup is finished.
+      test: ["CMD-SHELL", 'pg_isready -h 127.0.0.1 -U "$$POSTGRES_USER" -d postgres']
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # Runs the migrations as the migrator user, then exits. The API starts only after it succeeds.
+  migrate:
+    build:
+      context: ..
+      dockerfile: infra/api.Dockerfile
+    command: ["node", "dist/cli/migrate.js"]
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: ${DB_NAME:?Set DB_NAME in .env}
+      DB_APP_USER: ${DB_APP_USER:?Set DB_APP_USER in .env}
+      DB_MIGRATOR_USER: ${DB_MIGRATOR_USER:?Set DB_MIGRATOR_USER in .env}
+      DB_MIGRATOR_PASSWORD: ${DB_MIGRATOR_PASSWORD:?Set DB_MIGRATOR_PASSWORD in .env}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
 
   api:
     build:
@@ -26,6 +57,17 @@ services:
       API_PORT: ${API_PORT:?Set API_PORT in .env}
       API_HOST: 0.0.0.0
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      # nginx (the web service) is the one proxy in front.
+      API_TRUST_PROXY_HOPS: "1"
+      # The app user only. The API never gets the migrator's password.
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: ${DB_NAME:?Set DB_NAME in .env}
+      DB_APP_USER: ${DB_APP_USER:?Set DB_APP_USER in .env}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:?Set DB_APP_PASSWORD in .env}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test:
         - CMD
