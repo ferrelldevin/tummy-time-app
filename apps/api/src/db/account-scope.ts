@@ -1,7 +1,7 @@
-import { and, asc, eq, gt, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, eq, gt, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
-import type { Db } from "./client.js";
-import { auditEvents, sessions, tummyLogs, type AuditEventType } from "./schema.js";
+import type { Queryable } from "./client.js";
+import { accounts, auditEvents, sessions, tummyLogs, type AuditEventType } from "./schema.js";
 
 /**
  * THE ONE DOOR to rows that belong to an account (threat model #8).
@@ -15,8 +15,9 @@ import { auditEvents, sessions, tummyLogs, type AuditEventType } from "./schema.
  * two accounts.
  *
  * Lookups that happen before anyone is signed in (find a session by its hash, find an account
- * by its code) belong to the sign-in code in Block 4. Adding a file to the guard's allowlist
- * for that is a reviewed change.
+ * by its code) live in src/auth/credential-store.ts, the one other file the guard allows.
+ *
+ * The accounts table is used here for one thing only: deleting this account for good.
  */
 
 declare const accountIdBrand: unique symbol;
@@ -47,7 +48,13 @@ export type AuditEvent = typeof auditEvents.$inferSelect;
 /** The next number from the one rev counter (ADR 0005). */
 const nextRev = sql<number>`nextval('tummy_logs_rev_seq')`;
 
-export function forAccount(db: Db, accountId: AccountId) {
+export interface NewSession {
+  idHash: string;
+  createdAt: Date;
+  expiresAt: Date;
+}
+
+export function forAccount(db: Queryable, accountId: AccountId) {
   const ownLog = (extra?: SQL) => and(eq(tummyLogs.accountId, accountId), extra);
   const ownSession = (extra?: SQL) => and(eq(sessions.accountId, accountId), extra);
 
@@ -118,6 +125,31 @@ export function forAccount(db: Db, accountId: AccountId) {
         return db.select().from(sessions).where(ownSession());
       },
 
+      /** Starts a session (a signed-in phone) for this account. Only the token's hash is kept. */
+      async create(values: NewSession): Promise<void> {
+        await db.insert(sessions).values({
+          idHash: values.idHash,
+          accountId,
+          createdAt: values.createdAt,
+          lastSeenAt: values.createdAt,
+          expiresAt: values.expiresAt,
+        });
+      },
+
+      /** Sessions that are still good: not past their end, and used since `seenAfter`. */
+      async countActive(now: Date, seenAfter: Date): Promise<number> {
+        const rows = await db
+          .select({ n: count() })
+          .from(sessions)
+          .where(ownSession(and(gt(sessions.expiresAt, now), gt(sessions.lastSeenAt, seenAfter))));
+        return rows[0]?.n ?? 0;
+      },
+
+      /** Ends one of this account's sessions ("sign out" on this phone). */
+      async deleteOne(idHash: string): Promise<void> {
+        await db.delete(sessions).where(ownSession(eq(sessions.idHash, idHash)));
+      },
+
       /** Ends every session of this account ("sign out everywhere"). Returns how many. */
       async deleteAll(): Promise<number> {
         const rows = await db
@@ -126,6 +158,20 @@ export function forAccount(db: Db, accountId: AccountId) {
           .returning({ idHash: sessions.idHash });
         return rows.length;
       },
+    },
+
+    /**
+     * Deletes this account for good, in one transaction: its tummy logs, its sessions and the
+     * account itself. Its audit events stay, unlinked (account_id becomes null), with an
+     * account_deleted event among them, for the audit retention period (docs/data-map.md).
+     */
+    async deleteAccount(): Promise<void> {
+      await db.transaction(async (tx) => {
+        await tx.insert(auditEvents).values({ type: "account_deleted", accountId });
+        await tx.delete(tummyLogs).where(eq(tummyLogs.accountId, accountId));
+        await tx.delete(sessions).where(eq(sessions.accountId, accountId));
+        await tx.delete(accounts).where(eq(accounts.id, accountId));
+      });
     },
 
     audit: {

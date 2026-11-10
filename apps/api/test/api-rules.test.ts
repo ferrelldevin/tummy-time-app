@@ -5,9 +5,11 @@ import { apiErrorSchema } from "@tummy/shared";
 import { buildApp } from "../src/app.js";
 import { applyApiRules, defineRoute, findLooseObjects } from "../src/http/api-rules.js";
 import { BODY_LIMIT_BYTES } from "../src/http/security.js";
+import { SAME_SITE, TEST_ORIGIN } from "./same-site.js";
 
 /** Test-only routes that exercise each rule. They exist only inside this file's app. */
 const app = buildApp({
+  appOrigin: TEST_ORIGIN,
   routes(scope) {
     defineRoute(scope, {
       method: "POST",
@@ -61,6 +63,7 @@ describe("one error shape, no leaks", () => {
     const res = await app.inject({
       method: "POST",
       url: "/api/test/echo",
+      headers: SAME_SITE,
       payload: { minutes: 3, pin: "1234" },
     });
     expect(res.statusCode).toBe(400);
@@ -71,6 +74,7 @@ describe("one error shape, no leaks", () => {
     const res = await app.inject({
       method: "POST",
       url: "/api/test/echo",
+      headers: SAME_SITE,
       payload: { minutes: 3, note: { a: "x", b: "y" } },
     });
     expect(res.statusCode).toBe(400);
@@ -78,7 +82,12 @@ describe("one error shape, no leaks", () => {
 
   it("400: wrong type, bad params, unknown query", async () => {
     for (const request of [
-      { method: "POST" as const, url: "/api/test/echo", payload: { minutes: "three" } },
+      {
+        method: "POST" as const,
+        url: "/api/test/echo",
+        headers: SAME_SITE,
+        payload: { minutes: "three" },
+      },
       { method: "GET" as const, url: "/api/test/items/not-a-uuid" },
       {
         method: "GET" as const,
@@ -96,7 +105,7 @@ describe("one error shape, no leaks", () => {
     const broken = await app.inject({
       method: "POST",
       url: "/api/test/echo",
-      headers: { "content-type": "application/json" },
+      headers: { ...SAME_SITE, "content-type": "application/json" },
       payload: '{"minutes": 3,',
     });
     expect(broken.statusCode).toBe(400);
@@ -107,7 +116,7 @@ describe("one error shape, no leaks", () => {
     const res = await app.inject({
       method: "POST",
       url: "/api/test/echo",
-      headers: { "content-type": "application/json" },
+      headers: { ...SAME_SITE, "content-type": "application/json" },
       payload: '{"minutes": 3, "__proto__": {"admin": true}}',
     });
     expect(res.statusCode).toBe(400);
@@ -118,6 +127,7 @@ describe("one error shape, no leaks", () => {
     const res = await app.inject({
       method: "POST",
       url: "/api/test/echo",
+      headers: SAME_SITE,
       payload: { minutes: 3 },
     });
     expect(res.statusCode).toBe(200);
@@ -139,7 +149,7 @@ describe("one error shape, no leaks", () => {
     const res = await app.inject({
       method: "POST",
       url: "/api/test/echo",
-      headers: { "content-type": "application/json" },
+      headers: { ...SAME_SITE, "content-type": "application/json" },
       payload: JSON.stringify({ minutes: 3, padding: "x".repeat(BODY_LIMIT_BYTES) }),
     });
     expect(res.statusCode).toBe(413);
@@ -150,7 +160,7 @@ describe("one error shape, no leaks", () => {
     const res = await app.inject({
       method: "POST",
       url: "/api/test/echo",
-      headers: { "content-type": "application/xml" },
+      headers: { ...SAME_SITE, "content-type": "application/xml" },
       payload: "<minutes>3</minutes>",
     });
     expect(res.statusCode).toBe(415);

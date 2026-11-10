@@ -4,6 +4,7 @@ import { z } from "zod";
 import { buildApp } from "../src/app.js";
 import { applyApiRules, defineRoute } from "../src/http/api-rules.js";
 import { loggerOptions, REDACT_PATHS } from "../src/logging.js";
+import { SAME_SITE, TEST_ORIGIN } from "./same-site.js";
 
 /**
  * THE REDACTION GATE. Sends requests full of made-up secrets through the real app with its real
@@ -79,6 +80,7 @@ function probeRoutes(scope: FastifyInstance): void {
 
 async function exercise(app: FastifyInstance): Promise<void> {
   const headers = {
+    ...SAME_SITE,
     cookie: `session=${SECRETS.cookie}`,
     authorization: `Bearer ${SECRETS.authorization}`,
     "x-forwarded-for": ADDRESS,
@@ -124,7 +126,12 @@ function capture(): { lines: string[]; stream: { write: (line: string) => void }
 
 describe("logs never carry secrets, bodies or network addresses", () => {
   const { lines, stream } = capture();
-  const app = buildApp({ LOG_LEVEL: "info", logStream: stream, routes: probeRoutes });
+  const app = buildApp({
+    LOG_LEVEL: "info",
+    logStream: stream,
+    appOrigin: TEST_ORIGIN,
+    routes: probeRoutes,
+  });
   afterAll(async () => {
     await app.close();
   });
@@ -185,6 +192,83 @@ describe("canary: the probe is real", () => {
   it("the redaction list names every secret the data map rules out", () => {
     for (const path of ["pin", "familyCode", "headers", "cookie", "authorization", "body", "ip"]) {
       expect(REDACT_PATHS).toContain(path);
+    }
+  });
+});
+
+describe("a real sign-up, sign-in and sign-out leave no PIN, code, token or cookie in any log line", () => {
+  it("logs at the most detailed level and finds none of them", async () => {
+    const { normalizeFamilyCode } = await import("@tummy/shared");
+    const { codeLookup } = await import("../src/auth/family-code.js");
+    const { sessionIdHash } = await import("../src/auth/sessions.js");
+    const auth = await import("./auth/helpers.js");
+    const { lines, stream } = capture();
+    const t = await auth.authTestApp({ app: { LOG_LEVEL: "trace", logStream: stream } });
+    try {
+      const pin = "593082";
+      const up = await t.app.inject({
+        method: "POST",
+        url: "/api/auth/sign-up/finish",
+        headers: SAME_SITE,
+        payload: { pin },
+      });
+      expect(up.statusCode).toBe(201);
+      const familyCode = up.json<{ familyCode: string }>().familyCode;
+      const firstToken = auth.sessionToken(up) ?? "";
+      const accountId = await auth.accountIdFor(t.raw, familyCode);
+      if (accountId) t.made.push(accountId);
+
+      const signIn = await auth.signIn(
+        t,
+        familyCode.toLowerCase(),
+        pin,
+        auth.cookieHeader(firstToken),
+      );
+      const token = auth.sessionToken(signIn) ?? "";
+      expect(signIn.statusCode).toBe(200);
+      expect((await auth.signIn(t, familyCode, "730518")).statusCode).toBe(401);
+      expect((await auth.signIn(t, "2345-6789-ABCD", pin)).statusCode).toBe(401);
+      expect((await auth.me(t, token)).statusCode).toBe(200);
+      await t.app.inject({
+        method: "POST",
+        url: "/api/auth/sign-out-everywhere",
+        headers: {
+          origin: "https://evil.example",
+          "x-tummy-request": "1",
+          ...auth.cookieHeader(token),
+        },
+      });
+      const again = auth.sessionToken(await auth.signIn(t, familyCode, pin)) ?? "";
+      const del = await t.app.inject({
+        method: "DELETE",
+        url: "/api/me",
+        headers: { ...SAME_SITE, ...auth.cookieHeader(again) },
+        payload: { pin },
+      });
+      expect(del.statusCode).toBe(200);
+
+      const output = lines.join("");
+      expect(lines.length).toBeGreaterThan(10);
+      const normalized = normalizeFamilyCode(familyCode);
+      const secrets = {
+        pin,
+        familyCode,
+        normalizedCode: normalized,
+        lowercaseCode: normalized.toLowerCase(),
+        firstToken,
+        token,
+        again,
+        tokenHash: sessionIdHash(token),
+        codeLookup: codeLookup(auth.TEST_SECRET, normalized),
+        cookieName: "__Host-tummy_session",
+      };
+      for (const [name, secret] of Object.entries(secrets)) {
+        expect(secret.length, name).toBeGreaterThan(5);
+        expect(output, `${name} reached the log`).not.toContain(secret);
+      }
+      expect(output).not.toContain("127.0.0.1");
+    } finally {
+      await t.close();
     }
   });
 });

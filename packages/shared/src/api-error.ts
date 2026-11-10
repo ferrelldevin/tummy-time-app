@@ -12,6 +12,12 @@ export const apiErrorCodes = [
   "unsupported_media_type",
   "rate_limited",
   "internal_error",
+  // Block 4: sign-in and sessions.
+  "unauthorized",
+  "forbidden",
+  "sign_in_failed",
+  "account_locked",
+  "weak_pin",
 ] as const;
 
 export type ApiErrorCode = (typeof apiErrorCodes)[number];

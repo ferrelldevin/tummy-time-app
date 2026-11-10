@@ -2,7 +2,7 @@
 
 How to get a database, change it, back it up and put a backup back. Every command says where it runs. Commands are written for Git Bash on Windows, or any terminal on macOS and Linux, from the repo root unless the label says otherwise.
 
-What is in this page so far comes from Block 3 (database and API spine). Block 8 adds the server: deploys, scheduled backups, where backups are kept and who can reach them.
+What is in this page so far comes from Block 3 (database and API spine) and Block 4 (sign-in settings, section 10). Block 8 adds the server: deploys, scheduled backups, where backups are kept and who can reach them.
 
 ## 1. The pieces
 
@@ -179,3 +179,33 @@ Not yet practiced: a backup and restore inside the Docker containers, and on the
 | `db:reset: refused.` | Not development or test, or not this machine | That is the guard working. Use `NODE_ENV=development` on your own machine only |
 | `restore: refused. Database ... already has N tables.` | You are restoring over data | Restore into a new database, or add `--replace-existing-data` if you mean to erase it |
 | `init-roles: ... \getenv` error | `psql` is older than 15 | Install the PostgreSQL 16 or 17 command-line tools |
+| `The API cannot start because its sign-in settings are not right: - CODE_LOOKUP_SECRET: missing` | No sign-in key in `.env` | Make one (section 10) |
+| `- CODE_LOOKUP_SECRET: does not look random` | The key was typed by hand or is a placeholder | Make one with the command in section 10 |
+| `- APP_ORIGIN: must be an origin ...` | The address has a path, a trailing slash, or is plain http on a real host | Use exactly scheme, host and port, such as `http://127.0.0.1:5173` |
+| Every button that saves something answers "This request is not allowed." | `APP_ORIGIN` does not match the address in the browser's address bar | Make them the same, character for character (`localhost` and `127.0.0.1` are different) |
+| `AUTH_PROVIDER is dev-fake ...` | The no-PIN test provider is set outside development or test | Remove `AUTH_PROVIDER` from the environment |
+
+## 10. Sign-in settings (Block 4)
+
+The API needs two more settings and refuses to start without them.
+
+| Setting | What it is | Rule |
+|---|---|---|
+| `CODE_LOOKUP_SECRET` | The key used to find an account from its family code | At least 32 random bytes in base64. Different on every machine and server. Never in git, chat, a ticket or a log |
+| `APP_ORIGIN` | The app's address as the browser shows it | Scheme, host and port only. `https` everywhere except your own machine |
+| `AUTH_PROVIDER` | `family-code-pin` (default) or `dev-fake` | Leave it out. `dev-fake` needs no PIN and only runs in development and test |
+
+Runs in: a terminal, in the repo folder. It prints a new key. Paste it after `CODE_LOOKUP_SECRET=` in `.env`.
+
+```bash
+node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"
+```
+
+**If the key is lost or changed, every family code made before stops working.** The codes are not stored, only a keyed hash of each, and the key is the other half. There is no way to work them out again. So on a real server:
+
+- The key is backed up separately from the database, by whoever holds the server's other secrets. A database backup without the key cannot sign anyone in. A key without the database is useless. Keeping them apart is the point.
+- Where it is kept and who can read it is decided in Block 8. Until then no real server exists.
+
+On your own machine, losing the key only costs your local test accounts: run `NODE_ENV=development pnpm db:reset`, then migrate and seed again.
+
+Each PIN check uses about 46 MB of memory for under a tenth of a second, and at most 4 run at once. Leave about 200 MB of room for the API on the server.

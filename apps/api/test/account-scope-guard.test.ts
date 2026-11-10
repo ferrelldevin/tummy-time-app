@@ -29,10 +29,20 @@ export const ALLOWLIST = new Map<string, { tables: string[]; why: string }>(
   Object.entries({
     "db/schema.ts": { tables: Object.keys(GUARDED_TABLES), why: "defines the tables" },
     "db/account-scope.ts": {
-      tables: ["tummyLogs", "sessions", "auditEvents"],
+      // accounts: only to delete the signed-in account for good (deleteAccount), by its own ID.
+      tables: ["tummyLogs", "sessions", "auditEvents", "accounts"],
       why: "the one door: adds the account filter to every query",
     },
     "db/seed.ts": { tables: ["accounts"], why: "creates the made-up sample accounts" },
+    // Block 4 (ADR 0008): the queries that run before anyone is signed in, so no session can
+    // vouch for an account ID yet. No tummyLogs: nothing before sign-in may read a log.
+    "auth/credential-store.ts": {
+      tables: ["accounts", "sessions", "auditEvents"],
+      why:
+        "before sign-in: find an account by its code's keyed hash, count and clear PIN attempts, " +
+        "create an account, find, refresh or end a session by its token's hash, and record a " +
+        "failed sign-in that matches no account",
+    },
   }),
 );
 

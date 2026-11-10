@@ -1,10 +1,15 @@
 import { buildApp } from "./app.js";
+import { loadAuthSettings } from "./auth/config.js";
+import { createAuth } from "./auth/index.js";
 import { assertRowAccessOnly, openDb, PrivilegeError } from "./db/client.js";
 import { loadAppDbSettings } from "./db/config.js";
 import { EnvError, loadEnv } from "./env.js";
 
 try {
   const env = loadEnv();
+  // Sign-in settings are checked before anything connects: a missing secret, a wrong origin or
+  // dev-fake outside development and test stops the API here.
+  const authSettings = loadAuthSettings();
   const db = openDb(loadAppDbSettings());
   try {
     // Fails fast if the database is down, or if this is not the low-privilege app user.
@@ -13,7 +18,8 @@ try {
     await db.close();
     throw error;
   }
-  const app = buildApp({ ...env, db });
+  const auth = await createAuth({ db: db.db, settings: authSettings });
+  const app = buildApp({ ...env, db, appOrigin: authSettings.appOrigin, auth });
   for (const signal of ["SIGINT", "SIGTERM"] as const) {
     process.once(signal, () => {
       void app.close().then(() => process.exit(0));

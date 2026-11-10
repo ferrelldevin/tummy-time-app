@@ -57,11 +57,11 @@ Severity is harm if it happened: High, Medium, Low. "Block" is where the control
 
 | # | What could go wrong | STRIDE | Severity | Control | Block |
 |---|---|---|---|---|---|
-| 1 | Guessing a 6-digit PIN | Spoofing | High | PIN is useless without the 12-character random family code. 5 wrong PINs lock the account 15 minutes. Rate limit per network address | 4 |
-| 2 | Guessing family codes in bulk | Spoofing | High | About 60 bits of randomness. Rate limit on sign-in. Wrong code and wrong PIN look and time the same, so an attacker cannot tell which codes exist | 4 |
-| 3 | Database leak exposes codes or PINs | Information disclosure | High | Only a keyed hash of the code and an Argon2id hash of the PIN are stored. The key is a server secret, not in the database | 4 |
-| 4 | Stolen session token | Spoofing | High | HttpOnly cookie (scripts cannot read it), HTTPS only, hash stored server-side, expiry, "sign out everywhere" | 4 |
-| 5 | Another site makes the phone send requests (CSRF) | Tampering | Medium | SameSite cookie, origin check, required custom header | 4 |
+| 1 | Guessing a 6-digit PIN | Spoofing | High | PIN is useless without the 12-character random family code. 5 wrong PINs lock the account 15 minutes; the count and the lock are one database step, so guesses sent at the same time cannot get past 5. Common PINs are refused at sign-up. Sign-in is limited to 10 a minute per network address. Built and tested in Block 4 | 4 |
+| 2 | Guessing family codes in bulk | Spoofing | High | About 60 bits of randomness. Rate limit on sign-in. Wrong code and wrong PIN get the same answer and each cost one full Argon2id check (a test measures both). The "locked" answer can only be reached with a real code. Built and tested in Block 4 | 4 |
+| 3 | Database leak exposes codes or PINs | Information disclosure | High | Only a keyed hash of the code and an Argon2id hash of the PIN are stored. The key (`CODE_LOOKUP_SECRET`) is a server secret, not in the database; the API refuses to start without a strong one. Where the key is kept on the server, and its backup, are Block 8 | 4, 8 |
+| 4 | Stolen session token | Spoofing | High | HttpOnly cookie (scripts cannot read it), HTTPS only, `__Host-` name so no other site can set it, hash stored server-side, ends after 30 days unused or 90 days in total, new token at every sign-in, "sign out everywhere". Built and tested in Block 4. Rows of ended sessions are removed when next presented; the daily cleanup in the data map is not built yet | 4, 8 |
+| 5 | Another site makes the phone send requests (CSRF) | Tampering | Medium | SameSite cookie, exact origin check against a configured address (never the Host header), required custom header. Refused before the body is read. Fails closed when no origin is configured. Built and tested in Block 4 | 4 |
 | 6 | Someone picks up an unlocked phone | Spoofing | Medium | Accepted for now: a caregiver holding a baby should not re-enter a PIN. Sign out everywhere exists. Revisit for shared clinic devices | 10 |
 | 7 | Caregiver loses the code | Denial of service (to themselves) | Medium | Clear warning at sign-up. Recovery designed in Block 10 | 10 |
 
@@ -76,7 +76,9 @@ Severity is harm if it happened: High, Medium, Low. "Block" is where the control
 | 12 | Error messages reveal internals | Information disclosure | Low | One error shape, no stack traces sent to the phone | 3 |
 | 13 | Account data left on the phone after sign-out | Information disclosure | Medium | Sign-out and deletion clear IndexedDB and caches. Checked by hand in Block 7 | 7 |
 | 14 | Flooding the API | Denial of service | Medium | Rate limits, request size limit, validation limits on every number | 3, 6 |
-| 15 | "Who deleted this?" cannot be answered | Repudiation | Low | Audit events for account actions | 4 |
+| 15 | "Who deleted this?" cannot be answered | Repudiation | Low | Audit events for sign-up, sign-in, failed sign-in, lockout, sign-out and account deletion. They hold a type, a time and an account ID, nothing else. Built in Block 4 | 4 |
+| 15a | The sign-in lookups go around the account filter, because nobody is signed in yet | Elevation of privilege | High | They live in one file, `apps/api/src/auth/credential-store.ts`, named in the guard test's allowlist with its reason. It cannot touch tummy logs. Any change to that file or the allowlist is a security review | 4 |
+| 15b | Flooding sign-up to fill the database, or sign-in to use up the server's memory with PIN checks | Denial of service | Medium | Sign-up 20 an hour and sign-in 10 a minute per network address. Each PIN check uses about 46 MB for under a tenth of a second, at most 4 at once. Limits are per address and in memory, so many addresses at once are not stopped here; the proxy and server limits are Block 8 | 4, 8 |
 
 ### Content and safety
 
