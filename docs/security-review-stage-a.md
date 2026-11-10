@@ -47,6 +47,13 @@ Reading alone had already been done block by block. This review added the one th
 | 10 | Low | An extra image was built only to add `bash`, which the database image already has | Removed | Running it |
 | 11 | Low | A browser test measured a button's colors halfway through a 150 ms fade and failed on the build server only | The accessibility helper waits for fades to end | Reproduced by slowing the fade, then fixed |
 
+### The second review of these fixes
+
+The fixes above were written by the reviewer, so a separate reviewer read them. It found nothing that weakens a test or a control, one medium problem and six low ones. All are fixed:
+
+- **Medium.** Once the proxy started fresh on every deploy (finding 8), an invalid `Caddyfile` would have taken the site down, and going back would have started the proxy with the same file. `deploy.sh` now has Caddy check the file before anything running is touched. Run for real: an invalid file stops the deploy with nothing changed.
+- **Low.** A wrong certificate file for the health check looked the same as a version that will not start (the script now prints what `curl` said); the "no screen breaks the policy" test could not tell an empty list from a listener that had gone missing (it now ends by breaking the policy once on purpose); the header reader could misread a repeated header, a tab or an `include` (it now refuses or reads them, with unit tests); the Zod import guard did not look in subfolders; two comments were wrong.
+
 ## Open items
 
 None of these is a defect in code that more code would close today. Each has an owner.
