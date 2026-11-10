@@ -25,6 +25,9 @@ test("Home, then When to call, then back (tap)", async ({ page }) => {
 
 test("keyboard only: Home, then When to call, then back", async ({ page }) => {
   await page.goto("/");
+  // React draws the page after load: wait for it, or the first Tab can land before the skip
+  // link exists (a race in the test, not in the app).
+  await expect(page.getByRole("heading", { level: 1, name: "Tummy Time" })).toBeVisible();
   // The skip link is the first stop and is visible when focused.
   await page.keyboard.press("Tab");
   const skip = page.getByRole("link", { name: "Skip to main content" });
