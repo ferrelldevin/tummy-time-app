@@ -1,7 +1,9 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../../App";
+import { LOCAL_DB_NAME, wipeLocalData } from "../../log/local-data";
+import { openLogStore } from "../../log/store";
 import { en } from "../../strings/en";
 import { apiError, stubApi } from "../../test/api-stub";
 import { axeViolations } from "../../test/axe";
@@ -346,5 +348,95 @@ describe("Your account", () => {
     fireEvent.click(screen.getByRole("button", { name: a.manage.deleteSubmit }));
     expect(await screen.findByText(a.signedOut.deleted)).toBeDefined();
     expect(api.calls.find((c) => c.method === "DELETE")?.body).toEqual({ pin: "482916" });
+  });
+});
+
+describe("offline: sign-in, create account, sign out and delete need a connection (Block 7)", () => {
+  let online = false;
+  beforeEach(() => {
+    online = false;
+    vi.spyOn(navigator, "onLine", "get").mockImplementation(() => online);
+  });
+  afterEach(async () => {
+    vi.restoreAllMocks();
+    await wipeLocalData();
+  });
+
+  async function databaseNames(): Promise<string[]> {
+    return (await indexedDB.databases()).map((d) => d.name ?? "");
+  }
+
+  it("sign-in says so, does not try, keeps what was typed, and moves focus to the sentence", async () => {
+    const api = stubApi({ signedIn: false });
+    const { container } = renderAt("/sign-in");
+    const note = await screen.findByText(a.signIn.needsConnection);
+    fireEvent.change(field(a.signIn.codeLabel), { target: { value: "ABCD-EFGH-JKMN" } });
+    fireEvent.change(field(a.signIn.pinLabel), { target: { value: "482916" } });
+    fireEvent.click(screen.getByRole("button", { name: a.signIn.submit }));
+    await waitFor(() => {
+      expect(note.closest(".needs-connection")).toBe(document.activeElement);
+    });
+    expect(api.calls.some((c) => c.url.startsWith("/api/auth/"))).toBe(false);
+    expect(field(a.signIn.codeLabel).value).toBe("ABCD-EFGH-JKMN");
+    expect(await axeViolations(container)).toEqual([]);
+  });
+
+  it("create account says so and does not try", async () => {
+    const api = stubApi({ signedIn: false });
+    renderAt("/create-account");
+    const note = await screen.findByText(a.create.needsConnection);
+    fireEvent.change(field(a.create.pinLabel), { target: { value: "482916" } });
+    fireEvent.change(field(a.create.confirmLabel), { target: { value: "482916" } });
+    fireEvent.click(screen.getByRole("button", { name: a.create.submit }));
+    await waitFor(() => {
+      expect(note.closest(".needs-connection")).toBe(document.activeElement);
+    });
+    expect(api.calls.some((c) => c.url.startsWith("/api/auth/"))).toBe(false);
+  });
+
+  it("the sentence goes away when the phone is back online", async () => {
+    stubApi({ signedIn: false });
+    renderAt("/sign-in");
+    await screen.findByText(a.signIn.needsConnection);
+    online = true;
+    act(() => {
+      window.dispatchEvent(new Event("online"));
+    });
+    expect(screen.queryByText(a.signIn.needsConnection)).toBeNull();
+  });
+
+  it.each([a.manage.signOut, a.manage.signOutEverywhere])(
+    "%s: says so, keeps this phone's copy of the log, and stays signed in",
+    async (button) => {
+      (await openLogStore(() => undefined)).close();
+      expect(await databaseNames()).toContain(LOCAL_DB_NAME);
+      const api = stubApi({ signedIn: true });
+      const { container } = renderAt("/account");
+      const note = await screen.findByText(a.manage.needsConnection);
+      fireEvent.click(screen.getByRole("button", { name: button }));
+      await waitFor(() => {
+        expect(note.closest(".needs-connection")).toBe(document.activeElement);
+      });
+      expect(api.calls.some((c) => c.url.startsWith("/api/auth/sign-out"))).toBe(false);
+      expect(screen.getByRole("heading", { level: 1, name: a.manage.title })).toBeDefined();
+      expect(screen.queryByText(a.signedOut.thisPhone)).toBeNull();
+      expect(await databaseNames()).toContain(LOCAL_DB_NAME);
+      expect(await axeViolations(container)).toEqual([]);
+    },
+  );
+
+  it("delete account says so and does not try", async () => {
+    const api = stubApi({ signedIn: true });
+    renderAt("/account");
+    const note = await screen.findByText(a.manage.needsConnection);
+    fireEvent.change(screen.getByLabelText(a.manage.deletePinLabel, { selector: "input" }), {
+      target: { value: "482916" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: a.manage.deleteSubmit }));
+    await waitFor(() => {
+      expect(note.closest(".needs-connection")).toBe(document.activeElement);
+    });
+    expect(api.calls.some((c) => c.method === "DELETE")).toBe(false);
+    expect(screen.queryByText(a.signedOut.deleted)).toBeNull();
   });
 });

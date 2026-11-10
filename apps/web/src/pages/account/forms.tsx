@@ -91,6 +91,24 @@ export function ErrorSummary({
   );
 }
 
+/**
+ * Shown on a screen that needs the server while the phone is offline: one plain sentence, in
+ * place of pretending to try. Focus moves here when the person presses the button anyway.
+ */
+export function NeedsConnection({
+  text,
+  ref,
+}: {
+  text: string;
+  ref: RefObject<HTMLDivElement | null>;
+}) {
+  return (
+    <div ref={ref} tabIndex={-1} className="needs-connection">
+      <Alert kind="info">{text}</Alert>
+    </div>
+  );
+}
+
 export function useSummaryRef() {
   return useRef<HTMLDivElement>(null);
 }

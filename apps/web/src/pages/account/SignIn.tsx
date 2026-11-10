@@ -16,7 +16,15 @@ import { PinField } from "../../components/PinField";
 import { TextField } from "../../components/TextField";
 import { useSession } from "../../session";
 import { en } from "../../strings/en";
-import { cleanPin, ErrorSummary, failureText, pinProblem, useFocusAfterSubmit } from "./forms";
+import { useOnline } from "../../useOnline";
+import {
+  cleanPin,
+  ErrorSummary,
+  failureText,
+  NeedsConnection,
+  pinProblem,
+  useFocusAfterSubmit,
+} from "./forms";
 
 const t = en.account.signIn;
 
@@ -39,10 +47,17 @@ export function SignIn() {
   const codeRef = useRef<HTMLInputElement>(null);
   const pinRef = useRef<HTMLInputElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
+  const offlineRef = useRef<HTMLDivElement>(null);
   const focusAfterSubmit = useFocusAfterSubmit();
+  const online = useOnline();
 
   async function submit(event: SyntheticEvent) {
     event.preventDefault();
+    if (!online) {
+      // Signing in needs the server. Say so; keep what was typed.
+      focusAfterSubmit(offlineRef);
+      return;
+    }
     const next: { code?: string; pin?: string } = {};
     const c = codeProblem(code);
     const p = pinProblem(pin);
@@ -83,6 +98,7 @@ export function SignIn() {
   return (
     <Page title={t.title}>
       <p>{t.intro}</p>
+      {online ? null : <NeedsConnection text={t.needsConnection} ref={offlineRef} />}
       <form className="stack" noValidate onSubmit={(e) => void submit(e)}>
         <ErrorSummary id={summaryId} problems={problems} ref={summaryRef} />
         <TextField

@@ -127,6 +127,7 @@ export const en = {
       title: "Welcome",
       intro: "Sign in to keep a log of tummy time. Your log can be on more than one phone.",
       open: "You do not need to sign in to read lessons or When to call.",
+      needsConnection: "You need a connection to sign in or create an account.",
       createAccount: "Create account",
       signIn: "Sign in",
     },
@@ -140,6 +141,8 @@ export const en = {
       confirmLabel: "Type the PIN again",
       submit: "Create account",
       submitting: "Creating your account...",
+      needsConnection:
+        "You need a connection to create an account. Try again when you are back online.",
       haveAccount: "Already have a family code?",
       signInInstead: "Sign in",
     },
@@ -163,6 +166,7 @@ export const en = {
       pinHint: "6 numbers.",
       submit: "Sign in",
       submitting: "Signing in...",
+      needsConnection: "You need a connection to sign in. Try again when you are back online.",
       noAccount: "New here?",
       createInstead: "Create account",
     },
@@ -181,6 +185,10 @@ export const en = {
       onePhone: "Signed in on 1 phone.",
       // {n} is replaced with a number of 2 or more.
       manyPhones: "Signed in on {n} phones.",
+      // Opened with no signal: the server has not been asked yet.
+      checkLater: "We will check with the server when you are back online.",
+      needsConnection:
+        "You need a connection to sign out or delete your account. You are still signed in on this phone.",
       signOut: "Sign out on this phone",
       signOutEverywhere: "Sign out on all phones",
       everywhereHint: "Use this if a phone is lost or someone should no longer see your log.",

@@ -1,4 +1,4 @@
-import type { LogSync } from "./engine";
+import type { LogSync, SyncStatus } from "./engine";
 
 /**
  * The one door to this phone's copy of the log (docs/data-map.md, "On the phone"), and the only
@@ -15,6 +15,8 @@ import type { LogSync } from "./engine";
 export const LOCAL_DB_NAME = "tummy-time";
 
 let running: Promise<LogSync> | null = null;
+/** The same engine as `running`, once it has loaded, for callers that cannot wait. */
+let loaded: LogSync | null = null;
 let onUnauthorized: () => void = () => undefined;
 
 /** The session layer says what to do when the server answers 401 to a sync request. */
@@ -32,6 +34,7 @@ export function startLogSync(): Promise<LogSync> {
         },
       });
       engine.start();
+      loaded = engine;
       return engine;
     },
     (error: unknown) => {
@@ -47,6 +50,7 @@ export function startLogSync(): Promise<LogSync> {
 export function stopLogSync(): void {
   const engine = running;
   running = null;
+  loaded = null;
   void engine?.then((e) => {
     e.stop();
   });
@@ -84,6 +88,7 @@ function deleteDatabase(name: string): Promise<void> {
 export async function wipeLocalData(): Promise<void> {
   const engine = running;
   running = null;
+  loaded = null;
   if (engine) {
     try {
       (await engine).stop();
@@ -92,4 +97,65 @@ export async function wipeLocalData(): Promise<void> {
     }
   }
   await deleteDatabase(LOCAL_DB_NAME);
+}
+
+/** What sync is doing right now, for the update rule (src/update/). Null when it is not running. */
+export interface SyncActivity {
+  /** A save on this phone, or a send or pull, is under way. */
+  busy: boolean;
+  /** Changes waiting in the outbox. */
+  pending: number;
+  status: SyncStatus;
+}
+
+export function syncActivity(): SyncActivity | null {
+  if (loaded === null) return null;
+  const state = loaded.getState();
+  return { busy: loaded.isBusy(), pending: state.pending, status: state.status };
+}
+
+/**
+ * Whether this phone holds a copy of the log, which it does only while signed in: the database
+ * is deleted on every sign-out, account deletion, 401, and before every sign-in. The session
+ * layer asks this when the server cannot be reached (src/session.tsx).
+ *
+ * It never creates the database. indexedDB.databases() lists without opening. Where that is
+ * missing, the database is opened without a version: if it did not exist, the browser starts
+ * creating it and asks for an upgrade, and aborting that upgrade cancels the creation, so
+ * nothing is left behind.
+ */
+export async function localDataExists(given?: IDBFactory): Promise<boolean> {
+  // A browser with IndexedDB switched off has none at all.
+  const factory = given ?? (globalThis as { indexedDB?: IDBFactory }).indexedDB;
+  if (factory === undefined) return false;
+  // Older Safari has no databases(), whatever the type definitions say.
+  if ("databases" in factory) {
+    try {
+      return (await factory.databases()).some((d) => d.name === LOCAL_DB_NAME);
+    } catch {
+      // Some browsers list only in a secure context, or refuse in private mode. Fall through.
+    }
+  }
+  return new Promise((resolve) => {
+    let request: IDBOpenDBRequest;
+    try {
+      request = factory.open(LOCAL_DB_NAME);
+    } catch {
+      resolve(false);
+      return;
+    }
+    request.onupgradeneeded = () => {
+      // Only a database that did not exist yet needs an upgrade when opened with no version.
+      request.transaction?.abort();
+    };
+    request.onsuccess = () => {
+      request.result.close();
+      resolve(true);
+    };
+    request.onerror = (event) => {
+      // Aborted above (it did not exist), or storage is blocked: either way, no copy here.
+      event.preventDefault();
+      resolve(false);
+    };
+  });
 }

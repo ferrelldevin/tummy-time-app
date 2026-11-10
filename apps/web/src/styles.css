@@ -415,10 +415,12 @@ p {
   margin-top: var(--space-2);
 }
 
-.error-summary:focus {
+.error-summary:focus,
+.needs-connection:focus {
   outline: none;
 }
-.error-summary:focus-visible {
+.error-summary:focus-visible,
+.needs-connection:focus-visible {
   outline: var(--focus-width) solid var(--color-focus);
   outline-offset: 0.125rem;
 }
