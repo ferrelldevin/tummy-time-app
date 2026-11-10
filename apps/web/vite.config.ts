@@ -20,6 +20,10 @@ export default defineConfig(({ mode }) => {
       port: Number(env.WEB_PREVIEW_PORT ?? "4173"),
       strictPort: true,
       proxy,
+      // The same Referrer-Policy nginx sends with the page (infra/nginx.conf.template). It can
+      // change the Origin header a browser sends, which the API checks, so the browser tests run
+      // with it too.
+      headers: { "Referrer-Policy": "no-referrer" },
     },
     test: {
       environment: "jsdom",

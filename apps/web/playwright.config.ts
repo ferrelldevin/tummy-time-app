@@ -34,7 +34,16 @@ export default defineConfig({
       command: "pnpm --filter @tummy/api exec tsx src/server.ts",
       cwd: "../..",
       url: "http://127.0.0.1:3101/api/health",
-      env: { API_PORT: "3101", LOG_LEVEL: "silent" },
+      // The real family-code-pin provider. APP_ORIGIN is the built app's address below, the only
+      // page that sends state-changing requests in these tests. CODE_LOOKUP_SECRET comes from the
+      // environment (CI makes a fresh one per run; locally it is in .env).
+      env: {
+        API_PORT: "3101",
+        LOG_LEVEL: "silent",
+        NODE_ENV: "test",
+        APP_ORIGIN: "http://127.0.0.1:4173",
+        AUTH_PROVIDER: "family-code-pin",
+      },
       reuseExistingServer: false,
     },
     {

@@ -121,6 +121,15 @@ jobs:
           psql --version
           bash infra/db/init-roles.sh
       - run: pnpm db:migrate
+      # The browser tests start the real API, which needs a family-code key. A fresh random one
+      # is made for each run, so no key is ever written in this file. APP_ORIGIN and NODE_ENV
+      # for that API are set in apps/web/playwright.config.ts.
+      - name: Make a throwaway sign-in key for this run
+        run: |
+          set -euo pipefail
+          key="$(openssl rand -base64 32)"
+          echo "::add-mask::$key"
+          echo "CODE_LOOKUP_SECRET=$key" >> "$GITHUB_ENV"
       - run: pnpm --filter @tummy/web exec playwright install --with-deps chromium
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
