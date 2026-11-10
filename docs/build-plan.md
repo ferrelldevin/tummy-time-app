@@ -567,7 +567,7 @@ Steps
 
 1. API: `PUT /api/logs/:id` creates or updates an entry (the phone makes the ID, a random UUID). `DELETE /api/logs/:id` marks it deleted. `GET /api/logs?since=<rev>` returns every entry changed after that revision, plus the newest revision number.
 2. The server gives every write the next number from one counter and stores it in `rev`. "Newest wins" means the last write to reach the server.
-3. Validate hard: `duration_seconds` between 1 and 7,200; `started_at` not in the future and not before a year ago; the ID is a valid UUID; the entry belongs to the signed-in account or does not exist yet.
+3. Validate hard: `duration_seconds` between 1 and 7,200; `started_at` not more than 5 minutes in the future (phone clocks drift) and not before a year ago; the ID is a valid UUID; the entry belongs to the signed-in account or does not exist yet.
 4. On the phone, keep entries in IndexedDB. Every change is saved locally first and added to an outbox. The outbox sends when online and retries with growing waits.
 5. Pull on app open, on return to the foreground, and after the outbox empties. Store the last revision number seen.
 6. Build the screens: "Start tummy time" with a large start and stop control and a running time that screen readers can query but that does not announce every second; a manual "Add a time" form; a simple list of entries by day; delete with an undo.

@@ -18,7 +18,7 @@ A study guide for the project, written for a CS student. One chapter per build b
 | 3 | [Database and API spine](03-database-and-api-spine.md) | Written |
 | 4 | [Sign-in and sessions](04-sign-in-and-sessions.md) | Written |
 | 5 | [Content pipeline and first lesson](05-content-pipeline.md) | Written |
-| 6 | Tummy time log and sync | Not started |
+| 6 | [Tummy time log and sync](06-log-and-sync.md) | Written |
 | 7 | Offline and install | Not started |
 | 8 | Deploy, runbook and skeleton gate | Not started |
 

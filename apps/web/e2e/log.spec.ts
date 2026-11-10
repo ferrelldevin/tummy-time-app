@@ -1,5 +1,6 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import { axeViolations } from "./axe";
+import { sidewaysOverflow } from "./layout";
 
 /**
  * The tummy time log and sync in a real browser, through the real family-code-pin provider,
@@ -9,10 +10,7 @@ import { axeViolations } from "./axe";
 
 /** Sideways scroll check. One small local helper, so it can be swapped for a shared one later. */
 async function noSidewaysScroll(page: Page): Promise<void> {
-  const overflow = await page.evaluate(
-    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-  );
-  expect(overflow).toBeLessThanOrEqual(0);
+  expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
 }
 
 async function targetsAtLeast44(page: Page, where: string): Promise<void> {
