@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { axeViolations } from "./axe";
-import { sidewaysOverflow } from "./layout";
+import { doubleTextSize, sidewaysOverflow } from "./layout";
 import {
   addTime,
   cachedEntries,
@@ -241,7 +241,7 @@ test("Add to your home screen: from Home, axe, 320 px with no sideways scroll, 4
   expect(await axeViolations(page)).toEqual([]);
   expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
   await targetsAtLeast44(page, ".app-shell", "/add-to-home-screen");
-  await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
+  await doubleTextSize(page);
   expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
 });
 

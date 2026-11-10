@@ -6,6 +6,7 @@ import { Link } from "./Link";
 import { useOnline } from "../useOnline";
 import { BottomBar } from "./BottomBar";
 import { NavigatedContext } from "./Page";
+import { SiteBanner } from "./SiteBanner";
 import { SkipLink } from "./SkipLink";
 import { OfflineNotice } from "./StateViews";
 import { UpdateNotice } from "../update/UpdateNotice";
@@ -35,6 +36,7 @@ export function AppShell() {
     <NavigatedContext.Provider value={navigated}>
       <div className="app-shell">
         <SkipLink targetId="main" />
+        <SiteBanner />
         {/* The one scrolling area. The bottom bar sits below it, never on top of it, so no
             control can end up partly hidden under the bar (WCAG 2.4.11, 2.5.8). */}
         <div className="app-scroll">

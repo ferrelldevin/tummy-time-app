@@ -11,3 +11,7 @@ playwright-report/
 test-results/
 backups/
 dist-e2e-next/
+
+# Production server state (infra/deploy.sh): which version is running.
+infra/.deployed-version
+infra/.deployed-version.tmp

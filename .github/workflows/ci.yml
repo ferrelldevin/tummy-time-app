@@ -139,6 +139,45 @@ jobs:
           path: apps/web/playwright-report
           retention-days: 7
 
+  images:
+    name: Container images build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Builds both images from the repo root, as the production file does. Nothing is pushed, no
+      # login is used and no secret is needed. A missing COPY in a Dockerfile fails here, not on
+      # the first deploy (the Block 8 review found two such bugs by running the files).
+      - name: Build the API image
+        run: docker build -f infra/api.Dockerfile -t tummy-time-api:ci .
+      - name: Build the web image
+        run: docker build -f infra/web.Dockerfile -t tummy-time-web:ci .
+      # Checks that the production Compose file is valid and that every required setting is named.
+      # Every value below is plainly fake and belongs to nothing. --quiet: never print the result.
+      - name: Check the production Compose file
+        env:
+          TUMMY_VERSION: ci
+        run: |
+          set -euo pipefail
+          env_file="$RUNNER_TEMP/ci-fake.env"
+          cat > "$env_file" <<'EOF'
+          API_PORT=3001
+          APP_ORIGIN=https://ci.invalid
+          SITE_ADDRESS=ci.invalid
+          CODE_LOOKUP_SECRET=ci-only-not-a-secret
+          POSTGRES_USER=ci_admin
+          POSTGRES_PASSWORD=ci-only-not-a-secret
+          DB_NAME=tummy_ci
+          DB_APP_USER=tummy_app
+          DB_APP_PASSWORD=ci-only-not-a-secret
+          DB_MIGRATOR_USER=tummy_migrator
+          DB_MIGRATOR_PASSWORD=ci-only-not-a-secret
+          BACKUP_DIR=/tmp/ci-backups
+          EOF
+          docker compose --env-file "$env_file" -f infra/docker-compose.prod.yml --profile tools config --quiet
+
   dependencies:
     name: Dependency audit (npm audit and OSV)
     runs-on: ubuntu-24.04

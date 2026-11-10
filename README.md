@@ -69,7 +69,7 @@ The first time you run the end-to-end test on your own machine, install the brow
 
 ### Run it in containers (optional)
 
-Fill in the two `POSTGRES_` lines and the two `DB_` passwords in `.env` with values you make up, then `pnpm docker:up`. The database container creates its users on its first start, a one-off container runs the migrations, then the API and the web server start. The app is at http://localhost:8080.
+Fill in the two `POSTGRES_` lines, the two `DB_` passwords and `CODE_LOOKUP_SECRET` in `.env` with values you make up (the file says how to make each), then `pnpm docker:up`. The database container creates its users on its first start, a one-off container runs the migrations, then the API and the web server start. The app is at http://127.0.0.1:8080. Use that exact address, not `localhost`: the API only accepts sign-in from the one address it was told is the app's (`APP_ORIGIN`), and for the containers that is `http://127.0.0.1:8080`. To use another port, set `DOCKER_WEB_PORT` in `.env`.
 
 ### Where things are
 

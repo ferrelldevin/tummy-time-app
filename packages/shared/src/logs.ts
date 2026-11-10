@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "./zod.js";
 
 /**
  * Request and answer shapes for the tummy time log and its sync (Block 6, ADR 0005, ADR 0009).

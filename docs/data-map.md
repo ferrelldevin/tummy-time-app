@@ -74,7 +74,7 @@ A security record of account events.
 
 ## In logs
 
-Request method, path, status, duration, a random request ID. Never: PIN, family code, cookie, session token, request bodies, network address.
+Request method, path, status, duration, a random request ID. Never: PIN, family code, cookie, session token, request bodies, network address. Checked on a full run of the production stack in the Block 8 review (all four containers' logs read, test certificate for `localhost`): none of these appeared. Not yet checked on a real server, where Caddy's error lines may show a visitor's address.
 
 ## Who can read what
 
@@ -90,10 +90,10 @@ Request method, path, status, duration, a random request ID. Never: PIN, family 
 | Data | Kept until |
 |---|---|
 | Account and its logs | The caregiver deletes the account (in the app), which erases every row for good |
-| Sessions | Expiry. An ended session is refused and removed the next time it is presented. The daily cleanup for ones never presented again is not built yet (Block 8) |
-| Deleted log entries (marked) | 90 days after deletion, then erased |
-| Audit events | 180 days |
-| Backups | 30 days (to confirm with whoever runs the server) |
+| Sessions | Expiry. An ended session is refused and removed the next time it is presented. The daily cleanup (`pnpm db:cleanup`) removes the rest, once it is scheduled on the server |
+| Deleted log entries (marked) | The plan is 90 days after deletion, then erased. **They are not erased yet**: a phone offline longer than that would never hear of the delete (ADR 0005, "Known gap"). They stay until that is solved |
+| Audit events | 180 days, removed by the daily cleanup once it is scheduled on the server |
+| Backups | In a private folder on the server's disk. 30 days, then the backup script deletes them (to confirm with whoever runs the server). Unencrypted until that is decided |
 
 Retention periods are proposals. The client and Dr. Gupta confirm them in Block 9.
 

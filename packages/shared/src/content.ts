@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "./zod.js";
 
 /**
  * Lesson and safety card files (ADR 0006). Everything in `content/` is checked against these

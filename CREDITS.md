@@ -70,6 +70,7 @@ Tools run in CI (downloaded, not added to the code)
 
 Container images
 - postgres, nginx, node (official Docker images; CI also runs postgres as a throwaway service container). Licenses of the software inside: PostgreSQL License, BSD-2-Clause, MIT.
+- caddy 2.10.2 (official Docker image; the HTTPS proxy in the production stack, infra/Caddyfile). Apache-2.0.
 
 Images
 - App icons (`apps/web/public/icons/`): a PLACEHOLDER, drawn for this repo as a plain SVG in the design token colors, and rendered to PNG by `scripts/render-icons.mjs` with Playwright's Chromium. No third-party art, no fonts. Not the client's logo; replace it when the client supplies one.

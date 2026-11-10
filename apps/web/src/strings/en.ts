@@ -19,6 +19,9 @@ export const en = {
     whenToCall: "When to call",
   },
   skipLink: "Skip to main content",
+  // Shown on every screen of a test site only (build setting SITE_BANNER=test, docs/runbook.md).
+  // The words are fixed by the build plan (Block 8, step 2). Never shown on the real site.
+  testSiteBanner: "Test site. Sample data.",
   // Shown on every placeholder screen until a clinician signs off on the real content.
   draftLabel: "Draft. Not yet reviewed by a clinician.",
   home: {

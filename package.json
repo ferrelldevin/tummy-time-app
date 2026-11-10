@@ -22,6 +22,7 @@
     "db:migrate": "pnpm --filter @tummy/api db:migrate",
     "db:seed": "pnpm --filter @tummy/api db:seed",
     "db:reset": "pnpm --filter @tummy/api db:reset",
+    "db:cleanup": "pnpm --filter @tummy/api db:cleanup",
     "prepare": "simple-git-hooks",
     "docker:up": "docker compose --env-file .env -f infra/docker-compose.yml up --build",
     "db:up": "docker compose --env-file .env -f infra/docker-compose.yml -f infra/docker-compose.dev.yml up -d db"

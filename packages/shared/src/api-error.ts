@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "./zod.js";
 
 /**
  * Every error the API sends has this one shape: { "error": { "code", "message" } }.
