@@ -47,13 +47,16 @@ export default defineConfig({
       reuseExistingServer: false,
     },
     {
+      // The built app, with its service worker. Built twice: the second build, labelled
+      // "e2e-next", plays the next version for e2e/update.spec.ts, and only a browser carrying
+      // that test's cookie is served it (e2e/next-build-preview.ts). Every other test gets dist/.
       command:
-        "pnpm --filter @tummy/web exec vite build && pnpm --filter @tummy/web exec vite preview",
+        "pnpm --filter @tummy/web exec vite build && TUMMY_BUILD_ID=e2e-next pnpm --filter @tummy/web exec vite build --outDir dist-e2e-next && pnpm --filter @tummy/web exec vite preview",
       cwd: "../..",
       url: "http://127.0.0.1:4173",
-      env: { API_PORT: "3101" },
+      env: { API_PORT: "3101", E2E_NEXT_BUILD_DIR: "dist-e2e-next" },
       reuseExistingServer: false,
-      timeout: 120_000,
+      timeout: 180_000,
     },
     {
       command: "pnpm --filter @tummy/web exec vite",
