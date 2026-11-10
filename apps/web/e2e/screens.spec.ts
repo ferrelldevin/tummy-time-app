@@ -4,21 +4,27 @@ import { expect, test } from "@playwright/test";
 import { axeViolations } from "./axe";
 
 const screens = [
-  { path: "/start-tummy-time", title: "Start tummy time" },
-  { path: "/baby-crying", title: "Baby crying? Try this" },
-  { path: "/when-to-call", title: "When to call" },
-  { path: "/lessons", title: "Lessons" },
-  { path: "/lessons/first-lesson", title: "First lesson (placeholder)" },
-  { path: "/log", title: "Log" },
-  { path: "/no-such-page", title: "Page not found" },
+  { path: "/start-tummy-time", title: "Start tummy time", draft: true },
+  { path: "/baby-crying", title: "Baby crying? Try this", draft: true },
+  { path: "/when-to-call", title: "When to call", draft: true },
+  { path: "/lessons", title: "Lessons", draft: true },
+  { path: "/lessons/first-lesson", title: "First lesson (placeholder)", draft: true },
+  // The Log needs sign-in (Block 4). Signed out, it shows the Welcome screen. The signed-in Log
+  // is checked in account.spec.ts.
+  { path: "/log", title: "Welcome", draft: false },
+  { path: "/welcome", title: "Welcome", draft: false },
+  { path: "/sign-in", title: "Sign in", draft: false },
+  { path: "/create-account", title: "Create account", draft: false },
+  { path: "/signed-out", title: "Signed out", draft: false },
+  { path: "/no-such-page", title: "Page not found", draft: false },
 ];
 
-for (const { path, title } of screens) {
-  test(`${title} screen has its heading and no accessibility violations`, async ({ page }) => {
+for (const { path, title, draft } of screens) {
+  test(`${path} (${title}) has its heading and no accessibility violations`, async ({ page }) => {
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
     await expect(page).toHaveTitle(`${title} | Tummy Time`);
-    if (path !== "/no-such-page" && path !== "/log") {
+    if (draft) {
       await expect(page.getByText("Draft. Not yet reviewed by a clinician.")).toBeVisible();
     }
     expect(await axeViolations(page)).toEqual([]);

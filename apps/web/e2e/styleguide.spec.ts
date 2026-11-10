@@ -62,6 +62,11 @@ test("dialog closes with its Close button and returns focus", async ({ page }) =
 test("reduced motion stops the spinner from animating", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/styleguide");
+  // Wait for the style guide itself. Until its lazy file arrives, the only spinner on the page
+  // is the loading fallback, which is then removed (reading it gives an empty style).
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Style guide (development only)" }),
+  ).toBeVisible();
   const name = await page
     .locator(".spinner__ring")
     .first()
@@ -72,6 +77,11 @@ test("reduced motion stops the spinner from animating", async ({ page }) => {
 test("the spinner animates when motion is allowed", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/styleguide");
+  // Wait for the style guide itself. Until its lazy file arrives, the only spinner on the page
+  // is the loading fallback, which is then removed (reading it gives an empty style).
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Style guide (development only)" }),
+  ).toBeVisible();
   const name = await page
     .locator(".spinner__ring")
     .first()
