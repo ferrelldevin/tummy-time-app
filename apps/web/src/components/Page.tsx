@@ -9,22 +9,27 @@ export interface PageProps {
   /** The visible h1. Also the start of the browser tab title. */
   title: string;
   children?: ReactNode;
+  /**
+   * Move focus to the heading even on first load. For a screen that replaces another without a
+   * navigation (the family code after sign-up), so a screen reader still announces it.
+   */
+  focusHeading?: boolean;
 }
 
 /**
  * Every screen is a Page. When it appears after a navigation it sets the tab title and moves
  * focus to the h1, so a screen reader announces the new screen.
  */
-export function Page({ title, children }: PageProps) {
+export function Page({ title, children, focusHeading = false }: PageProps) {
   const heading = useRef<HTMLHeadingElement>(null);
   const navigated = useContext(NavigatedContext);
 
   useEffect(() => {
     document.title = title === en.appName ? en.appName : `${title} | ${en.appName}`;
-    if (navigated.current) {
+    if (navigated.current || focusHeading) {
       heading.current?.focus();
     }
-  }, [title, navigated]);
+  }, [title, navigated, focusHeading]);
 
   return (
     <div className="stack">

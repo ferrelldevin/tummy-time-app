@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
+import { stubApi } from "./test/api-stub";
 import { axeViolations } from "./test/axe";
 import { en } from "./strings/en";
 
@@ -14,10 +15,8 @@ function renderAt(path: string) {
 }
 
 beforeEach(() => {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(() => Promise.resolve(Response.json({ ok: true }))),
-  );
+  // Signed in, so the Log placeholder shows. Signed-out behavior is in pages/account/*.test.tsx.
+  stubApi({ signedIn: true });
 });
 
 afterEach(() => {
@@ -102,14 +101,15 @@ describe("placeholder screens", () => {
     ["/log", en.log.title],
   ] as const;
 
-  it.each(screens)("%s shows its title and the draft label", (path, title) => {
+  it.each(screens)("%s shows its title and the draft label", async (path, title) => {
     renderAt(path);
-    expect(screen.getByRole("heading", { level: 1, name: title })).toBeDefined();
+    expect(await screen.findByRole("heading", { level: 1, name: title })).toBeDefined();
     expect(screen.getByText(en.draftLabel, { exact: false })).toBeDefined();
   });
 
-  it.each(screens)("%s has no axe violations", async (path) => {
+  it.each(screens)("%s has no axe violations", async (path, title) => {
     const { container } = renderAt(path);
+    await screen.findByRole("heading", { level: 1, name: title });
     expect(await axeViolations(container)).toEqual([]);
   });
 

@@ -51,11 +51,26 @@ p {
   min-height: 100dvh;
 }
 .app-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
   background: var(--color-surface);
   border-bottom: var(--border-width) solid var(--color-border);
   font-weight: 700;
   font-size: var(--font-size-lead);
+}
+/* Sign in / Account: a text link with a full-size tap target. */
+.app-header__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--target-min);
+  min-width: var(--target-min);
+  padding: 0 var(--space-2);
+  font-size: 1rem;
 }
 .app-main {
   flex: 1;
@@ -357,4 +372,48 @@ p {
 .markdown pre {
   overflow-x: auto;
   max-width: 100%;
+}
+
+/* Text for screen readers only. Still in the page, so it is read in order. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The family code, shown once after sign-up. Large, spaced, and never split mid-group. */
+.family-code {
+  margin: 0;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  word-spacing: 0.3em;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* Show PIN, under the PIN field. */
+.field__toggle {
+  margin-top: var(--space-2);
+}
+
+.error-summary:focus {
+  outline: none;
+}
+.error-summary:focus-visible {
+  outline: var(--focus-width) solid var(--color-focus);
+  outline-offset: 0.125rem;
+}
+.error-summary__list {
+  display: block;
+}
+.error-summary__item {
+  display: block;
 }

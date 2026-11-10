@@ -3,9 +3,16 @@ import { Route, Routes } from "react-router";
 import { AppShell } from "./components/AppShell";
 import { LoadingState } from "./components/StateViews";
 import { WhenToCallRoute } from "./pages/WhenToCallRoute";
+import { Account } from "./pages/account/Account";
+import { CreateAccount } from "./pages/account/CreateAccount";
+import { RequireSignIn } from "./pages/account/RequireSignIn";
+import { SignedOut } from "./pages/account/SignedOut";
+import { SignIn } from "./pages/account/SignIn";
+import { Welcome } from "./pages/account/Welcome";
 import { Home } from "./pages/Home";
 import { NotFound } from "./pages/NotFound";
 import { Placeholder } from "./pages/Placeholder";
+import { SessionProvider } from "./session";
 import { en } from "./strings/en";
 
 // The style guide exists only in development. In a production build this is `null`, the
@@ -22,6 +29,14 @@ const LessonRoute = lazy(() =>
 );
 
 export function App() {
+  return (
+    <SessionProvider>
+      <AppRoutes />
+    </SessionProvider>
+  );
+}
+
+function AppRoutes() {
   return (
     <Routes>
       <Route element={<AppShell />}>
@@ -55,7 +70,23 @@ export function App() {
         />
         <Route
           path="log"
-          element={<Placeholder title={en.log.title} text={en.log.placeholder} />}
+          element={
+            <RequireSignIn>
+              <Placeholder title={en.log.title} text={en.log.placeholder} />
+            </RequireSignIn>
+          }
+        />
+        <Route path="welcome" element={<Welcome />} />
+        <Route path="create-account" element={<CreateAccount />} />
+        <Route path="sign-in" element={<SignIn />} />
+        <Route path="signed-out" element={<SignedOut />} />
+        <Route
+          path="account"
+          element={
+            <RequireSignIn>
+              <Account />
+            </RequireSignIn>
+          }
         />
         {Styleguide ? (
           <Route
