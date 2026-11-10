@@ -1,0 +1,57 @@
+/*
+ * Design tokens: the one place for colors, type, spacing and radius.
+ * Light theme only for now. Contrast of every text pair is checked in tokens.test.ts,
+ * which reads this file. If you change a color, that test tells you if the pair still passes.
+ * Rule: write colors as 6-digit hex values so the test can read them.
+ * Sizes use rem so text grows with the user's own font setting. Body text is never below 1rem.
+ */
+:root {
+  /* Color: surfaces */
+  --color-bg: #fbf9f6;
+  --color-surface: #ffffff;
+  --color-info-bg: #e6f1f4;
+  --color-success-bg: #e6f3e8;
+  --color-danger-bg: #fdecec;
+
+  /* Color: text */
+  --color-text: #1c2b33;
+  --color-text-muted: #465862;
+  --color-link: #0a5a6a;
+  --color-danger: #9b1c1c;
+  --color-success: #1d5c2e;
+
+  /* Color: actions */
+  --color-primary: #0a5a6a;
+  --color-on-primary: #ffffff;
+  --color-accent: #9b1c1c;
+  --color-on-accent: #ffffff;
+
+  /* Color: lines and focus (non-text, need 3:1) */
+  --color-border: #5b6b75;
+  --color-focus: #1d4ed8;
+
+  /* Type scale (rem). Body is 1rem, the 16 px minimum. */
+  --font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-size-body: 1rem;
+  --font-size-lead: 1.125rem;
+  --font-size-h3: 1.25rem;
+  --font-size-h2: 1.5rem;
+  --font-size-h1: 1.875rem;
+  --line-height-body: 1.5;
+  --line-height-heading: 1.25;
+
+  /* Spacing (rem) */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+
+  /* Radius and sizes */
+  --radius-1: 0.5rem;
+  --radius-2: 0.75rem;
+  --target-min: 2.75rem; /* 44 px at the default font size */
+  --focus-width: 0.1875rem;
+  --border-width: 0.125rem;
+}
