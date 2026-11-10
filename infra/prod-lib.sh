@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# NOT YET RUN. Shared helpers for the production scripts (deploy.sh, backup-scheduled.sh,
+# Run in Docker during the Block 8 review, with a test certificate for localhost. Not yet run
+# on a real server.
+# Shared helpers for the production scripts (deploy.sh, backup-scheduled.sh,
 # cleanup-scheduled.sh). Source it; do not run it. It sets no shell options of its own.
 #
 # The server's settings live in infra/.env (not in git, mode 600). These helpers read single

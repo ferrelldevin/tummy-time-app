@@ -1,9 +1,10 @@
-# NOT YET RUN. There is no Docker daemon where this was written, so no service in this file has
-# ever started. It was only read. The first check on a machine with Docker is
-#   docker compose --env-file .env -f docker-compose.prod.yml config --quiet
-# run in this folder (that checks syntax and that every required setting is present, and prints
-# nothing; never run it without --quiet, because it would print the secrets). Then follow
-# docs/runbook.md, "First-time server setup".
+# Run in Docker during the Block 8 review, with a test certificate for localhost. Not yet run
+# on a real server.
+# To check a change to this file without starting anything, run in this folder
+#   docker compose --env-file .env -f docker-compose.prod.yml --profile tools config --quiet
+# (it checks syntax and that every required setting is present, and prints nothing; never run it
+# without --quiet, because it would print the secrets). Then follow docs/runbook.md,
+# "First-time server setup".
 #
 # WHY A STANDALONE FILE and not an override of docker-compose.yml: an override can add to a list
 # but not take away from it, and the development file publishes the web port and has different
@@ -26,23 +27,21 @@
 # empty. There is no default for any password or key, here or anywhere in this file.
 #
 # IMAGES are pinned by exact version tag (postgres also carries the digest CI already uses).
-# Pinning every image by digest is better, because a tag can be moved. It must be done on the
-# first deploy, from a machine with Docker: `docker pull <image:tag>`, then
+# Pinning every image by digest is better, because a tag can be moved. It is still to do, from a
+# machine with Docker: `docker pull <image:tag>`, then
 # `docker image inspect --format '{{index .RepoDigests 0}}' <image:tag>`, and paste the result
-# in place of the tag. The tags here for caddy, nginx and node were not checked against the
-# registry when this was written. The first pull will say if one does not exist.
+# in place of the tag. The tags for caddy, nginx (infra/web.Dockerfile) and node
+# (infra/api.Dockerfile) were pulled and run in the Block 8 review, through a mirror of the
+# public registry.
 #
-# HARDENING that was chosen, and what was left out on purpose because it could not be tested here:
+# HARDENING in place (all of it worked in the Block 8 review, on all four containers):
 #   Every container: restart unless-stopped, no-new-privileges, read-only root filesystem with
 #     small tmpfs folders where the program must write, capped log files, a health check.
 #   api and caddy: also cap_drop ALL (api needs none; caddy keeps only the one to bind port 80
-#     and 443). api runs as the "node" user (infra/api.Dockerfile).
-#   NOT done: cap_drop for db and web (the postgres and nginx start-up scripts change file
-#     owner and user, so they need a short list of capabilities that has to be found by trying),
-#     and running nginx as a non-root user (the official image listens on port 80 as root; the
-#     "unprivileged" variant listens on 8080 and is a different image and template). Tighten
-#     these after the first successful run. If a container will not start, the first things to
-#     suspect are its read_only and tmpfs lines: comment them out, note it, and tell Devin.
+#     and 443, which works). api runs as the "node" user (infra/api.Dockerfile).
+#   NOT done: cap_drop for db and web, and running nginx as a non-root user. What remains is
+#     item E in docs/security-review-stage-a.md. If a container will not start, suspect its
+#     read_only and tmpfs lines first.
 #
 # HOW MANY PROXIES ARE IN FRONT OF THE API: ONE. A visitor's request goes
 #   visitor -> caddy -> api            (paths starting /api/)

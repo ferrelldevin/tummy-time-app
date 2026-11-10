@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# NOT YET RUN. Written without Docker, a server or a certificate. It has been read and checked
-# with "bash -n" only. The first check, on a server with Docker, is the "Practice" section of
-# docs/runbook.md: deploy a version, then deploy a deliberately broken one and watch it go back.
+# Run in Docker during the Block 8 review, with a test certificate for localhost. Not yet run on a
+# real server. In the review a good version deployed, and a deliberately broken one went back to
+# the last good version by itself. The next check is the practice list in docs/runbook.md.
 #
 # Puts a version of the app on this server.
 #
@@ -18,7 +18,8 @@
 #   3. Builds the images for this version. Nothing running is touched yet.
 #   4. Starts the database if it is not running, and takes a backup (infra/backup-scheduled.sh).
 #   5. Runs the migrations as the migrator user.
-#   6. Starts this version, and waits up to HEALTH_TIMEOUT_SECONDS (default 120) for
+#   6. Starts this version (the proxy, web and API fresh every time, so a changed Caddyfile takes
+#      effect; the database is not restarted), and waits up to HEALTH_TIMEOUT_SECONDS (default 120) for
 #      /api/health to answer through the proxy, over HTTPS, with the real certificate.
 #   7. If that fails, starts the previous version again and exits non-zero.
 #   8. If it works, records this version in infra/.deployed-version.

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# NOT YET RUN. Written without Docker. First check: run it once against a deployed stack and
-# expect "db:cleanup: removed 0 ended sessions and 0 old audit events."
+# Run in Docker during the Block 8 review, with a test certificate for localhost. Not yet run
+# on a real server.
+# Run by hand in the review; the timer is not installed anywhere. Expect a line like
+# "db:cleanup: removed 0 ended sessions and 0 old audit events."
 #
 # Runs the daily cleanup (pnpm db:cleanup, apps/api/src/cli/cleanup.ts) inside the running API
 # container. It deletes ended sessions and audit events older than 180 days, and prints only

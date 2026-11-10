@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# NOT YET RUN. Written without Docker; nothing here has been executed. The first check, on a
-# machine with Docker and a deployed stack, is the "Practice" section of docs/runbook.md.
+# Run in Docker during the Block 8 review, with a test certificate for localhost. Not yet run
+# on a real server.
+# The timer that would run it daily (infra/systemd) is checked for syntax only.
 #
 # Takes one database backup into BACKUP_DIR, then deletes backups older than BACKUP_KEEP_DAYS.
 #

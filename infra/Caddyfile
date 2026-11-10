@@ -1,6 +1,9 @@
-# NOT YET RUN: there is no Docker or Caddy where this was written. First check on a machine
-# with Docker: `docker compose --env-file .env -f docker-compose.prod.yml run --rm --no-deps caddy caddy validate --config /etc/caddy/Caddyfile`
+# Run in Docker during the Block 8 review, with a test certificate for localhost. Not yet run on a
+# real server. To check a change without a deploy, run in infra/:
+# `docker compose --env-file .env -f docker-compose.prod.yml run --rm --no-deps caddy caddy validate --config /etc/caddy/Caddyfile`
 # (it needs SITE_ADDRESS and API_PORT in the environment, which the compose file passes in).
+# Caddy reads this file only when it starts, so a change takes effect on the next deploy
+# (infra/deploy.sh starts the proxy fresh every time).
 #
 # The outer proxy of the production stack (infra/docker-compose.prod.yml). It is the ONLY part
 # of the stack that listens on the server's network ports.
@@ -42,8 +45,8 @@
 		reverse_proxy api:{$API_PORT}
 	}
 
-	# The app's files, from the web container (nginx, infra/nginx.conf.template). Its security and
-	# caching headers are set there and pass through unchanged.
+	# The app's files, from the web container (nginx, infra/nginx.conf.template). Its security
+	# headers (including HSTS) and caching headers are set there and pass through unchanged.
 	handle {
 		reverse_proxy web:80
 	}

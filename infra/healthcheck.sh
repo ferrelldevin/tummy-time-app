@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# NOT YET RUN. Written without a server. First check: run it against the deployed site and
-# expect one "ok" line and exit code 0; then point it at a wrong address and expect "FAILED" and
-# a non-zero exit code.
+# Run in Docker during the Block 8 review, with a test certificate for localhost. Not yet run
+# on a real server.
+# In the review it worked, and it exited 1 on a wrong address.
 #
 # An uptime check for the live site. It asks /api/health through the public address, prints ONE
 # line, and exits 0 when the answer is {"ok":true}, 1 otherwise. No third-party service, no
