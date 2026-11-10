@@ -4,7 +4,7 @@ This is the first of the two stage gates in `docs/build-plan.md`. The whole app 
 
 Reviewer: Claude (the senior reviewer for this project). The reviewer did not write the code under review, with one exception that is called out below: the fixes made during this review were written by the reviewer and were then checked by a second, separate reviewer.
 
-**Bottom line.** No high or medium finding in the app's own code is left open. Eleven defects were found and fixed, most of them in server files that had never been run. Six items stay open; each needs a decision from a person or a real server, not more code. A person has still not done the screen reader pass, the real-phone pass or the new-student test, so the gate is **not passed yet**.
+**Bottom line.** Eleven defects were found and fixed, most of them in server files that had never been run. Six items stay open, four of them medium; each needs a decision from a person, a design that does not exist yet, or a real server. One of them is in the app's own behaviour: "deleted" entries are kept longer than the data map says (item C). A person has still not done the screen reader pass, the real-phone pass or the new-student test, so the gate is **not passed yet**.
 
 ## How the review was done
 
@@ -26,6 +26,8 @@ Reading alone had already been done block by block. This review added the one th
 | A state-changing request from another origin, through the real proxy | Refused (403) |
 | The logs of all four containers after all of the above | No visitor address, PIN, family code, cookie or request body. The only addresses are the containers' own "listening on" lines |
 | Every browser test, under the page's real Content Security Policy | 63 pass. Before the fixes, the policy had never been sent to a browser by anything |
+
+**Not practiced:** going back to an older version by hand (runbook section 15, steps 2 to 4), changing the database administrator's password, and anything about certificates from a public authority.
 
 **What this does not prove.** The certificate was Caddy's own test certificate for `localhost`, not a public one. There was no public DNS name, no ODU network, no real phone and no person. The systemd timer files were checked for syntax only. Image tags were pulled through a mirror of the public registry.
 
@@ -68,7 +70,7 @@ Section numbers are not cited: the threat model still asks that the current ASVS
 |---|---|---|
 | Architecture and threat modeling | Met | `docs/threat-model.md`, ADRs 0001 to 0009, this review |
 | Authentication | Met with one recorded deviation | Argon2id above the OWASP minimum; lockout after 5 wrong PINs, counted and locked in one statement; the same answer and the same cost for an unknown code and a wrong PIN; per-address limits. **Deviation:** a 6-digit PIN is shorter than ASVS asks of a password. It is never the only secret: the family code is 12 random characters that nobody chooses, and both are needed. Recorded in ADR 0003. There is no recovery yet (Block 10), so there is no recovery flow to attack |
-| Session management | Met | 256-bit random token; only its hash is stored; `__Host-` cookie, Secure, HttpOnly, SameSite=Lax (read back from a browser on the deployed stack); 30-day idle and 90-day absolute ends; a new session on every sign-in; sign out here and everywhere; ended sessions are now removed daily (`pnpm db:cleanup`) |
+| Session management | Met | 256-bit random token; only its hash is stored; `__Host-` cookie, Secure, HttpOnly, SameSite=Lax (read back from a browser on the deployed stack); 30-day idle and 90-day absolute ends; a new session on every sign-in; sign out here and everywhere; ended sessions are removed by `pnpm db:cleanup`, which exists and was run by hand; its daily timer is not installed anywhere yet |
 | Access control | Met | One door to an account's rows (`forAccount`), a test that fails if a query goes around it, cross-account tests on every route. The two files allowed around it (sign-in lookups, the cleanup job) are named in that test with their reasons and take no ID from a request |
 | Validation, sanitization and encoding | Met | Strict schemas on every input and output; parameterized SQL only; React escaping; Markdown rendered without HTML; no `dangerouslySetInnerHTML`, `eval` or inline script anywhere, now enforced by the page policy in tests |
 | Stored cryptography | Met | No cryptography of our own: Argon2id, HMAC-SHA-256 and SHA-256 from maintained libraries and Node |
