@@ -19,7 +19,7 @@ A study guide for the project, written for a CS student. One chapter per build b
 | 4 | [Sign-in and sessions](04-sign-in-and-sessions.md) | Written |
 | 5 | [Content pipeline and first lesson](05-content-pipeline.md) | Written |
 | 6 | [Tummy time log and sync](06-log-and-sync.md) | Written |
-| 7 | Offline and install | Not started |
+| 7 | [Offline and install](07-offline-and-install.md) | Written |
 | 8 | Deploy, runbook and skeleton gate | Not started |
 
 ## Open the project on your own computer
