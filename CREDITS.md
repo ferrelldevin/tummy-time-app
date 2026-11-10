@@ -33,6 +33,9 @@ Runtime libraries
 - node-postgres (pg) 8.23.1 (connects the API to PostgreSQL). MIT.
 - @fastify/helmet 13.2.0, with Helmet (security headers on every API response). MIT.
 - @fastify/rate-limit 11.2.1 (general request limit, counted in memory), with its dependencies toad-cache, ip-address and @lukeed/ms. MIT.
+- argon2 (node-argon2) 0.45.1 by Ranieri Althoff (hashes and checks PINs with Argon2id; we write no hashing code ourselves). MIT. It binds the Argon2 reference C implementation by Daniel Dinu, Dmitry Khovratovich, Jean-Philippe Aumasson and Samuel Neves, which it ships inside the package: CC0 1.0 or Apache-2.0, at our option. Its dependencies: @phc/format 1.0.0, node-gyp-build 4.8.4, node-addon-api 8.9.2, cross-env 10.1.0 (with @epic-web/invariant and cross-spawn). All MIT. The package ships prebuilt binaries for Linux, macOS and Windows; pnpm does not run its install script, and none is needed.
+- @fastify/cookie 11.1.3 (reads and writes the session cookie), with its dependencies cookie 2.0.2 and fastify-plugin 6.0.1. MIT.
+- Node.js's built-in `node:crypto` (random bytes, HMAC-SHA-256, SHA-256, constant-time compare). MIT.
 
 Build and test tools
 - Vite and @vitejs/plugin-react (dev server and bundler). MIT.
