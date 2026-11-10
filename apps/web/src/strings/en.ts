@@ -54,7 +54,7 @@ export const en = {
     emptyTitle: "Nothing here yet",
     emptyBody: "When there is something to show, it will appear here.",
     errorTitle: "Something went wrong",
-    errorBody: "Your information is safe. Please try again.",
+    errorBody: "Please try again.",
     tryAgain: "Try again",
     offlineTitle: "You are offline",
     offlineBody: "You can keep using what is already on your phone.",
