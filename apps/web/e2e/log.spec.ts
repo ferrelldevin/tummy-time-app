@@ -1,6 +1,6 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import { axeViolations } from "./axe";
-import { sidewaysOverflow } from "./layout";
+import { doubleTextSize, sidewaysOverflow } from "./layout";
 
 /**
  * The tummy time log and sync in a real browser, through the real family-code-pin provider,
@@ -253,7 +253,7 @@ test("the timer and the log hold at 200% text with no sideways scroll", async ({
   await addTime(page, 10, 9);
   for (const path of ["/start-tummy-time", "/log"]) {
     await page.goto(path);
-    await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
+    await doubleTextSize(page);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await noSidewaysScroll(page);
   }
