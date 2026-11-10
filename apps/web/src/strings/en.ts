@@ -226,6 +226,14 @@ export const en = {
       unexpected: "Something went wrong. Please try again.",
     },
   },
+  update: {
+    // Shown at the top of every screen when a new version of the app is on this phone.
+    title: "Update available.",
+    body: "Update now to get the newest version of the app and its lessons.",
+    button: "Update now",
+    updating: "Updating...",
+    stopTimerFirst: "Stop the timer first. Then you can update.",
+  },
   notFound: {
     title: "Page not found",
     body: "We could not find that page.",

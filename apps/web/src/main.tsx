@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router";
 import { App } from "./App";
 import "./design/tokens.css";
 import "./styles.css";
+import { startUpdates } from "./update/updates";
 
 const root = document.getElementById("root");
 if (!root) {
@@ -16,3 +17,6 @@ createRoot(root).render(
     </BrowserRouter>
   </StrictMode>,
 );
+
+// Offline (Block 7): the service worker and the checks for a new version.
+startUpdates();
