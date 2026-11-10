@@ -6,6 +6,7 @@ import { apiCall } from "../../api";
 import { Alert } from "../../components/Alert";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
+import { Link } from "../../components/Link";
 import { Page } from "../../components/Page";
 import { PinField } from "../../components/PinField";
 import { sendBeforeSignOut } from "../../log/local-data";
@@ -189,6 +190,9 @@ export function Account() {
           </Button>
         </form>
       </Card>
+      <p>
+        <Link to="/add-to-home-screen">{t.addToHomeScreen}</Link>
+      </p>
     </Page>
   );
 }

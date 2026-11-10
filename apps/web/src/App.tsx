@@ -10,6 +10,7 @@ import { RequireSignIn } from "./pages/account/RequireSignIn";
 import { SignedOut } from "./pages/account/SignedOut";
 import { SignIn } from "./pages/account/SignIn";
 import { Welcome } from "./pages/account/Welcome";
+import { AddToHomeScreen } from "./pages/AddToHomeScreen";
 import { Home } from "./pages/Home";
 import { NotFound } from "./pages/NotFound";
 import { Placeholder } from "./pages/Placeholder";
@@ -105,6 +106,7 @@ function AppRoutes() {
             </SignedInLazy>
           }
         />
+        <Route path="add-to-home-screen" element={<AddToHomeScreen />} />
         <Route path="welcome" element={<Welcome />} />
         <Route path="create-account" element={<CreateAccount />} />
         <Route path="sign-in" element={<SignIn />} />

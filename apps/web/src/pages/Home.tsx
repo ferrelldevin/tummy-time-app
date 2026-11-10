@@ -15,6 +15,9 @@ export function Home() {
         {en.home.babyCrying}
       </Link>
       <p role="status">{en.server[server]}</p>
+      <p>
+        <Link to="/add-to-home-screen">{en.home.addToHomeScreen}</Link>
+      </p>
     </Page>
   );
 }

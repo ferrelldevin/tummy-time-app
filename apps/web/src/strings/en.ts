@@ -26,6 +26,7 @@ export const en = {
     intro: "Pick what you need right now.",
     startTummyTime: "Start tummy time",
     babyCrying: "Baby crying? Try this",
+    addToHomeScreen: "Add Tummy Time to your home screen",
   },
   startTummyTime: {
     title: "Start tummy time",
@@ -189,6 +190,7 @@ export const en = {
       checkLater: "We will check with the server when you are back online.",
       needsConnection:
         "You need a connection to sign out or delete your account. You are still signed in on this phone.",
+      addToHomeScreen: "Add Tummy Time to your home screen",
       signOut: "Sign out on this phone",
       signOutEverywhere: "Sign out on all phones",
       everywhereHint: "Use this if a phone is lost or someone should no longer see your log.",
@@ -233,6 +235,32 @@ export const en = {
     button: "Update now",
     updating: "Updating...",
     stopTimerFirst: "Stop the timer first. Then you can update.",
+  },
+  install: {
+    title: "Add to your home screen",
+    intro: "You can put Tummy Time on your home screen, like an app. Then it opens with one tap.",
+    offline:
+      "Open the app once with a signal. After that, lessons and When to call open with no signal too.",
+    // A person must check these steps on a real iPhone and a real Android phone whenever the
+    // phones change their menus. They name the buttons, not where they are, on purpose.
+    iphoneTitle: "On an iPhone",
+    iphoneSteps: [
+      "Open Tummy Time in Safari.",
+      "Tap the Share button. It looks like a square with an arrow pointing up.",
+      "Tap Add to Home Screen. You may need to scroll down to find it.",
+      "Tap Add.",
+    ],
+    androidTitle: "On an Android phone",
+    androidSteps: [
+      "Open Tummy Time in Chrome.",
+      "Tap the menu button. It looks like three dots.",
+      "Tap Add to Home screen or Install app.",
+      "Tap Install or Add to finish.",
+    ],
+    done: "Look for Tummy Time on your home screen. Tap it to open the app.",
+    // Only where the browser offers to install (Chrome on Android, for example).
+    canInstall: "This phone can add the app for you.",
+    installButton: "Install the app",
   },
   notFound: {
     title: "Page not found",
