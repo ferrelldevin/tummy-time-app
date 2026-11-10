@@ -16,6 +16,14 @@ Status: Proposed (Nov 10, 2026). The client picks the final method (Block 10).
   - Five wrong PINs lock the account for 15 minutes. Sign-in and sign-up are rate limited per network address, without storing the address.
 - A second phone signs in with the same code and PIN. Caregivers who share the code share the log.
 
+## As built (Block 4)
+- Argon2id runs with 46 MiB of memory, 2 passes and 1 lane, through the `argon2` library. That is above the OWASP minimum.
+- A PIN attempt is counted before the PIN is checked, and the fifth attempt sets the lock in the same database statement. Guesses sent at the same moment cannot get more than 5 checks, and a crash cannot leave an account at the limit with no lock.
+- An unknown family code runs one full check against a dummy hash, so it costs the same as a wrong PIN.
+- Deleting the account asks for the PIN again and shares the same count.
+- A second provider, `dev-fake`, signs in with the code alone for development and tests. The API refuses to start with it unless `NODE_ENV` is `development` or `test`.
+- The secret key for the code lookup is `CODE_LOOKUP_SECRET`. If it is lost or changed, no existing family code can be found again. Keeping it safe on the server is Block 8.
+
 ## Options not taken
 - **Email one-time code now.** Needs a mail service we do not have and stores personal information the client may not want. It can be added later as a second provider.
 - **Username and password.** People reuse passwords. A breach here would then hurt them elsewhere.

@@ -16,11 +16,8 @@ A study guide for the project, written for a CS student. One chapter per build b
 | 1 | [Scaffold and quality pipeline](01-scaffold.md) | Written |
 | 2 | [Design foundations and app shell](02-design-foundations.md) | Written |
 | 3 | [Database and API spine](03-database-and-api-spine.md) | Written |
+| 4 | [Sign-in and sessions](04-sign-in-and-sessions.md) | Written |
 | 5 | [Content pipeline and first lesson](05-content-pipeline.md) | Written |
-| 2 | Design foundations and app shell | Not started |
-| 3 | Database and API spine | Not started |
-| 4 | Sign-in and sessions | Not started |
-| 5 | Content pipeline and first lesson | Not started |
 | 6 | Tummy time log and sync | Not started |
 | 7 | Offline and install | Not started |
 | 8 | Deploy, runbook and skeleton gate | Not started |

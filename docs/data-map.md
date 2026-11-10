@@ -90,7 +90,7 @@ Request method, path, status, duration, a random request ID. Never: PIN, family 
 | Data | Kept until |
 |---|---|
 | Account and its logs | The caregiver deletes the account (in the app), which erases every row for good |
-| Sessions | Expiry, then deleted by a daily cleanup |
+| Sessions | Expiry. An ended session is refused and removed the next time it is presented. The daily cleanup for ones never presented again is not built yet (Block 8) |
 | Deleted log entries (marked) | 90 days after deletion, then erased |
 | Audit events | 180 days |
 | Backups | 30 days (to confirm with whoever runs the server) |

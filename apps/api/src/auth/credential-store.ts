@@ -76,9 +76,13 @@ export function credentialStore(db: Queryable) {
      * database hands out at most MAX_FAILED_ATTEMPTS of them. The attempt is counted as wrong
      * until clearAttempts() says otherwise.
      *
+     * The attempt that reaches the limit sets the lock in the same UPDATE. Counting and locking
+     * are one step, so nothing that goes wrong afterwards (a crash, a lost connection) can leave
+     * an account at the limit with no lock and so no time at which it opens again.
+     *
      * A lock whose time has passed is lifted here, and the count starts again at 1.
      */
-    async reserveAttempt(target: AttemptTarget, now: Date): Promise<Reservation> {
+    async reserveAttempt(target: AttemptTarget, now: Date, lockUntil: Date): Promise<Reservation> {
       const lockOver = and(
         sql`${accounts.lockedUntil} IS NOT NULL`,
         lte(accounts.lockedUntil, now),
@@ -87,7 +91,7 @@ export function credentialStore(db: Queryable) {
         .update(accounts)
         .set({
           failedAttempts: sql`CASE WHEN ${lockOver} THEN 1 ELSE ${accounts.failedAttempts} + 1 END`,
-          lockedUntil: null,
+          lockedUntil: sql`CASE WHEN NOT (${lockOver}) AND ${accounts.failedAttempts} + 1 >= ${MAX_FAILED_ATTEMPTS} THEN ${lockUntil.toISOString()}::timestamptz ELSE NULL END`,
         })
         .where(
           and(
@@ -112,7 +116,7 @@ export function credentialStore(db: Queryable) {
           attempt: row.attempt,
         };
       }
-      // No row: either no such account, or it is locked (or at the limit with checks running).
+      // No row: either no such account, or it is locked.
       const existing = await db
         .select({ id: accounts.id })
         .from(accounts)
@@ -122,25 +126,6 @@ export function credentialStore(db: Queryable) {
       return id === undefined
         ? { kind: "unknown" }
         : { kind: "locked", accountId: toAccountId(id) };
-    },
-
-    /**
-     * After a wrong PIN: locks the account until `until` if it has reached the limit and is not
-     * locked already. Returns true when this call set the lock.
-     */
-    async lockIfAtLimit(accountId: AccountId, until: Date): Promise<boolean> {
-      const rows = await db
-        .update(accounts)
-        .set({ lockedUntil: until })
-        .where(
-          and(
-            eq(accounts.id, accountId),
-            isNull(accounts.lockedUntil),
-            sql`${accounts.failedAttempts} >= ${MAX_FAILED_ATTEMPTS}`,
-          ),
-        )
-        .returning({ id: accounts.id });
-      return rows.length > 0;
     },
 
     /** After a right PIN: the count of wrong PINs in a row starts again. */

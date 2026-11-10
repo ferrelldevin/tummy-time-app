@@ -6,8 +6,12 @@ import {
   normalizeFamilyCode,
   signUpFinishResponseSchema,
 } from "@tummy/shared";
+import { credentialStore } from "../../src/auth/credential-store.js";
 import { codeLookup } from "../../src/auth/family-code.js";
 import { LOCK_DURATION_MS, MAX_FAILED_ATTEMPTS } from "../../src/auth/pin-check.js";
+import { toAccountId } from "../../src/db/account-scope.js";
+import { openDb } from "../../src/db/client.js";
+import { appSettings } from "../db/helpers.js";
 import { SAME_SITE } from "../same-site.js";
 import {
   accountIdFor,
@@ -263,6 +267,34 @@ describe("lockout", () => {
       failed_attempts: 0,
       locked_until: null,
     });
+  });
+
+  it("the fifth attempt sets the lock as it is counted, so a crash before its PIN is checked cannot leave the account shut for good", async () => {
+    const acct = await signUp(t);
+    for (let i = 0; i < MAX_FAILED_ATTEMPTS - 1; i += 1) {
+      await signIn(t, acct.familyCode, wrongPin(acct.pin));
+    }
+    // Count the fifth attempt and then do nothing more, as if the API stopped right here.
+    const handle = openDb(appSettings());
+    try {
+      const now = t.clock.now();
+      const reserved = await credentialStore(handle.db).reserveAttempt(
+        { accountId: toAccountId(acct.accountId) },
+        now,
+        new Date(now.getTime() + LOCK_DURATION_MS),
+      );
+      expect(reserved.kind).toBe("reserved");
+    } finally {
+      await handle.close();
+    }
+    const row = await accountRow(t.raw, acct.accountId);
+    expect(row?.failed_attempts).toBe(MAX_FAILED_ATTEMPTS);
+    expect(row?.locked_until?.getTime()).toBe(t.clock.now().getTime() + LOCK_DURATION_MS);
+
+    // Locked now, and open again after the 15 minutes.
+    expect((await signIn(t, acct.familyCode, acct.pin)).statusCode).toBe(429);
+    t.clock.advance(LOCK_DURATION_MS);
+    expect((await signIn(t, acct.familyCode, acct.pin)).statusCode).toBe(200);
   });
 
   it("after a lock ends, a wrong PIN starts a new count at 1", async () => {

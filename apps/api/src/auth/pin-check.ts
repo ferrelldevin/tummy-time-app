@@ -9,6 +9,8 @@ import type { PinHasher } from "./pin-hash.js";
  * - 5 wrong PINs in a row lock the account for 15 minutes;
  * - while locked, even the right PIN is refused;
  * - a right PIN clears the count.
+ * The fifth attempt sets the lock as it is counted, before its PIN is checked. If that PIN turns
+ * out right, the lock is cleared with the count.
  *
  * Used by sign-in (the account is found by its family code) and by account deletion (the
  * signed-in account, by ID), so both share one count.
@@ -26,7 +28,12 @@ export type PinCheckResult =
 export function pinChecker(db: Db, hasher: PinHasher, clock: Clock) {
   const store = credentialStore(db);
   return async function checkPin(target: AttemptTarget, pin: string): Promise<PinCheckResult> {
-    const reservation = await store.reserveAttempt(target, clock.now());
+    const now = clock.now();
+    const reservation = await store.reserveAttempt(
+      target,
+      now,
+      new Date(now.getTime() + LOCK_DURATION_MS),
+    );
 
     if (reservation.kind === "unknown") {
       await hasher.verifyDummy(pin);
@@ -47,10 +54,8 @@ export function pinChecker(db: Db, hasher: PinHasher, clock: Clock) {
 
     await scope.audit.record("sign_in_failed");
     if (reservation.attempt >= MAX_FAILED_ATTEMPTS) {
-      const until = new Date(clock.now().getTime() + LOCK_DURATION_MS);
-      if (await store.lockIfAtLimit(reservation.accountId, until)) {
-        await scope.audit.record("lockout");
-      }
+      // This was the attempt that reached the limit: the lock was set when it was counted.
+      await scope.audit.record("lockout");
     }
     return { outcome: "failed" };
   };
