@@ -1,3 +1,5 @@
+import { readFileSync, readdirSync } from "node:fs";
+import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 import { axeViolations } from "./axe";
 
@@ -6,6 +8,7 @@ const screens = [
   { path: "/baby-crying", title: "Baby crying? Try this" },
   { path: "/when-to-call", title: "When to call" },
   { path: "/lessons", title: "Lessons" },
+  { path: "/lessons/first-lesson", title: "First lesson (placeholder)" },
   { path: "/log", title: "Log" },
   { path: "/no-such-page", title: "Page not found" },
 ];
@@ -15,7 +18,7 @@ for (const { path, title } of screens) {
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
     await expect(page).toHaveTitle(`${title} | Tummy Time`);
-    if (path !== "/no-such-page" && path !== "/lessons" && path !== "/log") {
+    if (path !== "/no-such-page" && path !== "/log") {
       await expect(page.getByText("Draft. Not yet reviewed by a clinician.")).toBeVisible();
     }
     expect(await axeViolations(page)).toEqual([]);
@@ -39,6 +42,7 @@ for (const path of [
   "/baby-crying",
   "/when-to-call",
   "/lessons",
+  "/lessons/first-lesson",
   "/log",
 ]) {
   test(`${path} holds at 320 px wide with no sideways scroll`, async ({ page }) => {
@@ -55,7 +59,7 @@ for (const path of [
 
 test("every link and button is at least 44 by 44 px", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 640 });
-  for (const path of ["/", "/when-to-call"]) {
+  for (const path of ["/", "/when-to-call", "/lessons", "/lessons/first-lesson"]) {
     await page.goto(path);
     const targets = page.locator("a:visible, button:visible");
     const count = await targets.count();
@@ -84,4 +88,35 @@ test("the style guide is not part of the production build", async ({ page }) => 
   await page.goto("/styleguide");
   await expect(page.getByRole("heading", { level: 1, name: "Page not found" })).toBeVisible();
   await expect(page.getByText("Style guide (development only)")).toHaveCount(0);
+});
+
+// Proof that "a new lesson appears by adding one file, with no code change": the screen is
+// compared with whatever files are in content/lessons when the test runs. The app finds the
+// files with a glob at build time, so a file added to the folder changes this list by itself.
+test("the lessons list shows exactly the files in content/lessons", async ({ page }) => {
+  const dir = resolve(import.meta.dirname, "../../../content/lessons");
+  const titles = readdirSync(dir)
+    .filter((f) => f.endsWith(".md"))
+    .map((f) => /^title:\s*(.+)$/m.exec(readFileSync(resolve(dir, f), "utf8"))?.[1]?.trim());
+  expect(titles.length).toBeGreaterThan(0);
+  await page.goto("/lessons");
+  const links = page.locator("ul.lesson-list a");
+  await expect(links).toHaveCount(titles.length);
+  expect((await links.allInnerTexts()).sort()).toEqual([...titles].sort());
+});
+
+test("the emergency line shows on When to call and the screen opens in one tap from a lesson", async ({
+  page,
+}) => {
+  await page.goto("/lessons/first-lesson");
+  await page.getByRole("navigation").getByRole("link", { name: "When to call" }).click();
+  await expect(page.getByTestId("emergency-line")).toHaveText(
+    "Trouble breathing or turning blue: call 911.",
+  );
+});
+
+test("an unknown lesson shows page not found", async ({ page }) => {
+  await page.goto("/lessons/no-such-lesson");
+  await expect(page.getByRole("heading", { level: 1, name: "Page not found" })).toBeVisible();
+  expect(await axeViolations(page)).toEqual([]);
 });

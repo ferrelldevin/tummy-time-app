@@ -25,6 +25,8 @@ Runtime libraries
 - React and React DOM (build the screens). MIT.
 - Fastify (the API server). MIT.
 - Zod (checks data shapes, shared by web and API). MIT.
+- marked 18.2.0 (reads Markdown from lesson files into a list of parts; we turn the parts into React elements ourselves and never pass raw HTML). MIT.
+- yaml 2.9.1 (reads the settings at the top of lesson files). ISC.
 - react-router 8.5.1 (screen routing in the web app), with its two dependencies cookie-es and @remix-run/route-pattern. MIT.
 
 Build and test tools

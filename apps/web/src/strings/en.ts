@@ -1,3 +1,5 @@
+import { EMERGENCY_LINE } from "@tummy/shared";
+
 /** All text shown on screen lives here, so it can be reviewed and translated in one place. */
 export const en = {
   appName: "Tummy Time",
@@ -32,13 +34,29 @@ export const en = {
   },
   whenToCall: {
     title: "When to call",
-    placeholder: "This screen is a placeholder. The real guidance will go here.",
-    // GAP: the "when to call" wording must come from the client's clinicians.
-    // Nothing medical is written here on purpose.
+    // Fixed text. The screen shows this constant, never the copy in the content file.
+    emergencyLine: EMERGENCY_LINE,
+    // GAP: the list heading is a stand-in. The real "when to call" wording, and the items under
+    // it (content/safety-card.json), must come from the client's clinicians. Nothing medical is
+    // written here on purpose.
+    callTodayHeading: "Call today",
+    // Sentences below come word for word from docs/knowledge/content-style-guide.md.
+    notAdvice: "This app does not replace advice from your baby's care team.",
+    getHelp: "Talk to your baby's care team.",
+    problem: "We could not show the full card.",
   },
   lessons: {
     title: "Lessons",
-    placeholder: "This screen is a placeholder. Lessons will go here.",
+    backToList: "All lessons",
+    goal: "Goal",
+    steps: "Steps",
+    video: "Video",
+    transcript: "Transcript",
+    // From the style guide: every lesson ends with where to get help.
+    getHelp: "Talk to your baby's care team.",
+    problem: "We could not show this lesson.",
+    emptyTitle: "No lessons yet",
+    emptyBody: "When there is a lesson, it will appear here.",
   },
   log: {
     title: "Log",
