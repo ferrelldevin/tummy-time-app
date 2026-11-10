@@ -236,11 +236,12 @@ services:
   # administrator for init-roles.sh, override PGUSER and PGPASSWORD on the command line.
   # /infra is this folder (read-only); /backups is BACKUP_DIR on the host, outside every Docker
   # volume of this stack.
+  # The same image and digest as the database, so pg_dump always matches the server's version.
+  # (The image already has bash, which the scripts need. Checked by running it.)
   dbtools:
-    build:
-      context: .
-      dockerfile: dbtools.Dockerfile
-    image: tummy-time-dbtools:17.11
+    image: postgres:17.11-alpine@sha256:3540c0362c809df084ffac0ae69fe794515f9de92692f02178bcdce0ef0302ac
+    # Not the image's own start-up script: that would try to start a second database.
+    entrypoint: []
     profiles: [tools]
     restart: "no"
     security_opt:
