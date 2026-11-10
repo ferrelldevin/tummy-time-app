@@ -205,6 +205,13 @@ test("after sign-out, nothing from the account is left, and lessons and When to 
   await expect(page.getByText("You are signed out on this phone.")).toBeVisible();
   await expect.poll(() => hasLocalDatabase(page)).toBe(false);
   expect(await context.cookies()).toHaveLength(0);
+  // No other database either (the worker keeps none), and nothing in the two storages.
+  const stored = await page.evaluate(async () => ({
+    databases: (await indexedDB.databases()).map((d) => d.name),
+    local: localStorage.length,
+    session: sessionStorage.length,
+  }));
+  expect(stored).toEqual({ databases: [], local: 0, session: 0 });
   for (const entry of await cachedEntries(page)) {
     expect(entry.url).not.toContain("/api/");
   }

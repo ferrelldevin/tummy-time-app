@@ -60,7 +60,10 @@ Open http://localhost:5173. You should see "Tummy Time" and "Server is reachable
 | Database: migrate, add sample data, start again from empty | `pnpm db:migrate`, `pnpm db:seed`, `NODE_ENV=development pnpm db:reset` |
 | Phone-sized end-to-end test with the axe accessibility scan (Playwright) | `pnpm test:e2e` |
 | Production build | `pnpm build` |
-| First-load size budget (run after `pnpm build`) | `pnpm check:size` |
+| First-load size budget, no style guide in the build, and the service worker's caching rules (run after `pnpm build`) | `pnpm check:size` |
+| Draw the app icons again from `apps/web/public/icons/icon.svg` (then commit the PNGs) | `pnpm icons` |
+
+The service worker (offline use and "Update available") exists only in the production build, never in `pnpm dev`. To try it, run `pnpm build`, then `pnpm --filter @tummy/web exec vite preview` with the API running, and open http://127.0.0.1:4173.
 
 The first time you run the end-to-end test on your own machine, install the browser with `pnpm --filter @tummy/web exec playwright install chromium`. If your machine already has a Chromium somewhere else, set `PW_CHROMIUM_PATH` to its executable instead.
 
