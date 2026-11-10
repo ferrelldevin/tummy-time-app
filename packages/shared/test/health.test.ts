@@ -10,4 +10,8 @@ describe("healthResponseSchema", () => {
     expect(healthResponseSchema.safeParse({}).success).toBe(false);
     expect(healthResponseSchema.safeParse({ ok: false }).success).toBe(false);
   });
+
+  it("rejects unknown fields", () => {
+    expect(healthResponseSchema.safeParse({ ok: true, extra: 1 }).success).toBe(false);
+  });
 });

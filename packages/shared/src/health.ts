@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /** What GET /api/health returns. The API builds it and the web app checks it. */
-export const healthResponseSchema = z.object({
+export const healthResponseSchema = z.strictObject({
   ok: z.literal(true),
 });
 

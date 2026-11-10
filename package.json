@@ -18,8 +18,12 @@
     "test:e2e": "pnpm build:shared && pnpm --filter @tummy/web test:e2e",
     "build": "pnpm -r build",
     "check:size": "node scripts/check-bundle-size.mjs && node scripts/check-no-styleguide.mjs",
+    "db:migrate": "pnpm --filter @tummy/api db:migrate",
+    "db:seed": "pnpm --filter @tummy/api db:seed",
+    "db:reset": "pnpm --filter @tummy/api db:reset",
     "prepare": "simple-git-hooks",
-    "docker:up": "docker compose --env-file .env -f infra/docker-compose.yml up --build"
+    "docker:up": "docker compose --env-file .env -f infra/docker-compose.yml up --build",
+    "db:up": "docker compose --env-file .env -f infra/docker-compose.yml -f infra/docker-compose.dev.yml up -d db"
   },
   "simple-git-hooks": {
     "pre-commit": "sh scripts/pre-commit.sh"
@@ -45,7 +49,8 @@
   },
   "pnpm": {
     "overrides": {
-      "@typescript-eslint/typescript-estree>minimatch": "11.0.1"
+      "@typescript-eslint/typescript-estree>minimatch": "11.0.1",
+      "@esbuild-kit/core-utils>esbuild": "0.25.12"
     }
   }
 }
