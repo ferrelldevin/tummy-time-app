@@ -134,7 +134,7 @@ trap 'rm -f "$health_err"' EXIT
 # why_unhealthy: prints the last thing curl said, if anything.
 why_unhealthy() {
   if [ -s "$health_err" ]; then
-    echo "deploy: the last health check said: $(tail -n 1 "$health_err")" >&2
+    echo "deploy: the last health check said: $(grep -m 1 '^curl:' "$health_err" || head -n 1 "$health_err")" >&2
   fi
 }
 
