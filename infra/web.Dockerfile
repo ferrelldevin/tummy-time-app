@@ -9,6 +9,11 @@ COPY apps/web/package.json apps/web/
 RUN pnpm install --frozen-lockfile --ignore-scripts
 COPY packages/shared packages/shared
 COPY apps/web apps/web
+# SITE_BANNER=test turns on the "Test site. Sample data." strip on every screen. It is read when
+# the app is built, so a test site and the real site are two different builds. Empty = off.
+ARG SITE_BANNER=""
+ARG TUMMY_BUILD_ID="local"
+ENV SITE_BANNER=$SITE_BANNER TUMMY_BUILD_ID=$TUMMY_BUILD_ID
 RUN pnpm --filter @tummy/shared build && pnpm --filter @tummy/web exec vite build
 
 FROM nginx:1.31.2-alpine

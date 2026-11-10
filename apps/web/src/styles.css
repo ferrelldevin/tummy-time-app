@@ -62,6 +62,16 @@ p {
   flex-direction: column;
   overflow-y: auto;
 }
+/* Test site only: a fixed strip above everything, so it never scrolls out of sight. */
+.site-banner {
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-info-bg);
+  border-bottom: var(--border-width) solid var(--color-border);
+  color: var(--color-text);
+  font-weight: 700;
+  text-align: center;
+}
 .app-header {
   display: flex;
   flex-wrap: wrap;

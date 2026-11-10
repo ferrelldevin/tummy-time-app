@@ -11,9 +11,17 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, resolve(import.meta.dirname, "../.."), "");
   const apiTarget = `http://127.0.0.1:${env.API_PORT ?? "3001"}`;
   const webPort = Number(env.WEB_PORT ?? "5173");
+  // SITE_BANNER=test shows "Test site. Sample data." on every screen (src/components/SiteBanner.tsx).
+  // Read when the app is BUILT, never at run time, and off by default. Any other value stops the
+  // build, so a typo cannot quietly leave the banner off on a test site.
+  const siteBanner = (process.env.SITE_BANNER ?? env.SITE_BANNER ?? "").trim().toLowerCase();
+  if (siteBanner !== "" && siteBanner !== "test") {
+    throw new Error('SITE_BANNER must be empty or "test".');
+  }
   const proxy = { "/api": { target: apiTarget, changeOrigin: false } };
 
   return {
+    define: { __SITE_BANNER__: JSON.stringify(siteBanner) },
     plugins: [
       react(),
       // Writes the build's label into index.html (<meta name="tummy-build">), so a person or a
