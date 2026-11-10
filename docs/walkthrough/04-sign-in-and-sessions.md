@@ -131,6 +131,7 @@ The builder broke its checks on purpose while building. The reviewer then broke 
 - **The runbook now has the warning that matters most**: if `CODE_LOOKUP_SECRET` is lost or changed, no existing family code can ever be found again.
 - **Two browser tests were changed by the builder.** The reviewer read both changes. Each adds a wait for the page to finish drawing before the test acts. Nothing was removed or loosened. One of them had failed about once in 40 runs before this block for that reason.
 - The reviewer re-ran every check on a fresh database, and the browser tests twice.
+- **CI caught what two machines missed.** The browser tests passed on the builder's and the reviewer's machines and failed on GitHub. The accessibility checker reported the PIN field on the Account screen as half hidden under the bottom bar. The bar was stuck on top of the page, so at some scroll positions a field or button sat partly under it. Where the page stopped scrolling depended on the fonts of the machine, which is why only CI saw it. Making the test wait or scroll would have hidden a real problem. The fix was in the layout: the page now scrolls in its own area and the bar sits below that area, so nothing can be under it. The sideways-scroll tests were moved to one helper, `apps/web/e2e/layout.ts`, that measures the new scrolling area as well as the document, and it was proven by making the page too wide on purpose.
 
 ## 4. How you would build this yourself
 

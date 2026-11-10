@@ -25,22 +25,26 @@ export function AppShell() {
     <NavigatedContext.Provider value={navigated}>
       <div className="app-shell">
         <SkipLink targetId="main" />
-        <header className="app-header">
-          <span>{en.appName}</span>
-          {status === "signedIn" ? (
-            <Link to="/account" className="app-header__link">
-              {en.account.headerAccount}
-            </Link>
-          ) : (
-            <Link to="/sign-in" className="app-header__link">
-              {en.account.headerSignIn}
-            </Link>
-          )}
-        </header>
-        <main id="main" className="app-main" tabIndex={-1}>
-          {online ? null : <OfflineNotice />}
-          <Outlet />
-        </main>
+        {/* The one scrolling area. The bottom bar sits below it, never on top of it, so no
+            control can end up partly hidden under the bar (WCAG 2.4.11, 2.5.8). */}
+        <div className="app-scroll">
+          <header className="app-header">
+            <span>{en.appName}</span>
+            {status === "signedIn" ? (
+              <Link to="/account" className="app-header__link">
+                {en.account.headerAccount}
+              </Link>
+            ) : (
+              <Link to="/sign-in" className="app-header__link">
+                {en.account.headerSignIn}
+              </Link>
+            )}
+          </header>
+          <main id="main" className="app-main" tabIndex={-1}>
+            {online ? null : <OfflineNotice />}
+            <Outlet />
+          </main>
+        </div>
         <BottomBar />
       </div>
     </NavigatedContext.Provider>

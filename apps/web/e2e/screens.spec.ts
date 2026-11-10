@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 import { axeViolations } from "./axe";
+import { sidewaysOverflow } from "./layout";
 
 const screens = [
   // Start tummy time and the Log need sign-in (Blocks 4 and 6). Signed out, they show the
@@ -58,9 +59,7 @@ for (const path of [
     await page.setViewportSize({ width: 320, height: 640 });
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    );
+    const overflow = await sidewaysOverflow(page);
     expect(overflow).toBeLessThanOrEqual(0);
     expect(await axeViolations(page)).toEqual([]);
   });
@@ -86,9 +85,7 @@ test("the page holds at 200% text size with no sideways scroll", async ({ page }
   await page.setViewportSize({ width: 320, height: 640 });
   await page.goto("/");
   await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
-  const overflow = await page.evaluate(
-    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-  );
+  const overflow = await sidewaysOverflow(page);
   expect(overflow).toBeLessThanOrEqual(0);
   await expect(page.getByRole("link", { name: "When to call" })).toBeVisible();
 });
