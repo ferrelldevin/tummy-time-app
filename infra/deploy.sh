@@ -101,6 +101,15 @@ if [ "$host" != "$site" ]; then
   echo "deploy: SITE_ADDRESS must be the same name as in APP_ORIGIN (\"$host\")." >&2
   exit 1
 fi
+# Optional: a certificate authority file for the health check to trust, for a site whose
+# certificate does not come from a public authority (a practice run on your own computer with
+# SITE_ADDRESS=localhost, where Caddy makes its own; or an ODU-internal authority). Empty means
+# the system's normal list. The check never runs without verifying the certificate.
+ca_file="$(env_value HEALTH_CA_FILE)"
+if [ -n "$ca_file" ] && [ ! -r "$ca_file" ]; then
+  echo "deploy: HEALTH_CA_FILE ($ca_file) cannot be read." >&2
+  exit 1
+fi
 timeout="$(env_value HEALTH_TIMEOUT_SECONDS)"
 timeout="${timeout:-120}"
 if ! [[ "$timeout" =~ ^[0-9]+$ ]] || [ "$timeout" -lt 10 ]; then
@@ -123,8 +132,13 @@ compose --profile tools config --quiet
 # certificate is checked, without depending on the server being able to reach itself by name.
 wait_for_health() {
   local deadline=$((SECONDS + timeout)) body
+  local -a trust=()
+  if [ -n "$ca_file" ]; then
+    trust=(--cacert "$ca_file")
+  fi
   while [ "$SECONDS" -lt "$deadline" ]; do
-    body="$(curl -sS --fail --max-time 5 --resolve "$host:443:127.0.0.1" "https://$host/api/health" 2>/dev/null || true)"
+    # --noproxy: this request is to this machine and must never leave it through a web proxy.
+    body="$(curl -sS --fail --max-time 5 --noproxy '*' ${trust[@]+"${trust[@]}"} --resolve "$host:443:127.0.0.1" "https://$host/api/health" 2>/dev/null || true)"
     if [ "$body" = '{"ok":true}' ]; then
       return 0
     fi

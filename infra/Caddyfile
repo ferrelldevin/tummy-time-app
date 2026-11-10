@@ -26,6 +26,11 @@
 {
 	# Nothing here needs Caddy's admin interface.
 	admin off
+	# HTTP/1.1 and HTTP/2 only. HTTP/3 runs over UDP port 443, which the compose file does not
+	# publish, so Caddy must not tell browsers it is there.
+	servers {
+		protocols h1 h2
+	}
 }
 
 {$SITE_ADDRESS} {
