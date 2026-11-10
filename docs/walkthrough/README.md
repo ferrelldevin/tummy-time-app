@@ -20,7 +20,7 @@ A study guide for the project, written for a CS student. One chapter per build b
 | 5 | [Content pipeline and first lesson](05-content-pipeline.md) | Written |
 | 6 | [Tummy time log and sync](06-log-and-sync.md) | Written |
 | 7 | [Offline and install](07-offline-and-install.md) | Written |
-| 8 | Deploy, runbook and skeleton gate | Not started |
+| 8 | [Deploy, runbook and the daily cleanup](08-deploy-and-runbook.md) | Partly written: the parts that could be built without a server |
 
 ## Open the project on your own computer
 
