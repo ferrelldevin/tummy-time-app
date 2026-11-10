@@ -12,6 +12,7 @@ import type { AccountId } from "../db/account-scope.js";
 import type { Db } from "../db/client.js";
 import { ApiError, defineRoute } from "../http/api-rules.js";
 import type { AuthRateLimits } from "../http/security.js";
+import type { Clock } from "./clock.js";
 import { defineAccountRoute } from "./guard.js";
 import type { CheckPin } from "./pin-check.js";
 import type { AuthProvider } from "./provider.js";
@@ -38,6 +39,8 @@ export interface AuthDeps {
   sessions: SessionService;
   checkPin: CheckPin;
   rateLimits: AuthRateLimits;
+  /** The same clock sign-in uses. The log routes measure their time limits with it too. */
+  clock: Clock;
 }
 
 function clearSessionCookie(reply: FastifyReply): void {
