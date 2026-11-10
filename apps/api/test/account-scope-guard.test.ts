@@ -34,6 +34,15 @@ export const ALLOWLIST = new Map<string, { tables: string[]; why: string }>(
       tables: ["tummyLogs", "sessions", "auditEvents", "accounts"],
       why: "the one door: adds the account filter to every query",
     },
+    // Block 8: the daily cleanup. Not scoped to one account by nature. Kept tiny on purpose: one
+    // function, takes only the clock's "now", deletes, returns two counts. Security-reviewed.
+    "db/maintenance.ts": {
+      tables: ["sessions", "auditEvents"],
+      why:
+        "the daily cleanup deletes ended sessions and audit events past their retention for " +
+        "every account at once; it takes no ID, returns only counts, and never touches " +
+        "tummy_logs or accounts",
+    },
     "db/seed.ts": { tables: ["accounts"], why: "creates the made-up sample accounts" },
     // Block 4 (ADR 0008): the queries that run before anyone is signed in, so no session can
     // vouch for an account ID yet. No tummyLogs: nothing before sign-in may read a log.
@@ -182,6 +191,24 @@ describe("every query on account rows goes through src/db/account-scope.ts", () 
     it("leaves ordinary code alone", () => {
       expect(bad('import { forAccount } from "../db/account-scope.js";')).toEqual([]);
       expect(bad('const message = "Sign out of all sessions";')).toEqual([]);
+    });
+
+    it("the cleanup file may not reach tummy logs or accounts", () => {
+      for (const table of ["tummyLogs", "accounts"]) {
+        expect(
+          violations([
+            { path: "db/maintenance.ts", text: `import { ${table} } from "./schema.js";` },
+          ]),
+        ).toHaveLength(1);
+      }
+      expect(
+        violations([
+          {
+            path: "db/maintenance.ts",
+            text: 'import { sessions, auditEvents } from "./schema.js";',
+          },
+        ]),
+      ).toEqual([]);
     });
 
     it("an allowlisted file may use only its own tables", () => {
