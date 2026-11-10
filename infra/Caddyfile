@@ -1,0 +1,50 @@
+# NOT YET RUN: there is no Docker or Caddy where this was written. First check on a machine
+# with Docker: `docker compose --env-file .env -f docker-compose.prod.yml run --rm --no-deps caddy caddy validate --config /etc/caddy/Caddyfile`
+# (it needs SITE_ADDRESS and API_PORT in the environment, which the compose file passes in).
+#
+# The outer proxy of the production stack (infra/docker-compose.prod.yml). It is the ONLY part
+# of the stack that listens on the server's network ports.
+#
+# DEFAULT PATH (a temporary test site off campus): SITE_ADDRESS is a real DNS name that points at
+# this server, ports 80 and 443 are open to the internet, and Caddy gets and renews its own
+# certificate from a public certificate authority. Port 80 redirects to 443 by itself.
+#
+# THE ODU PATH IS DIFFERENT AND IS AN OPEN QUESTION (docs/hosting-questions.md). It depends on
+# how ODU issues certificates and whether ODU puts its own proxy in front. Do not guess.
+# The two shapes we can already see, to be chosen once ODU IT answers:
+#   (a) ODU gives us a certificate and key files. Mount them read-only into this container and
+#       add the line "tls /certs/site.crt /certs/site.key" inside the site block below (Caddy
+#       then never contacts a certificate authority).
+#   (b) ODU runs its own proxy that ends HTTPS and sends plain HTTP to us. Then use
+#       "http://{$SITE_ADDRESS}" as the site address and put "auto_https off" in the global block.
+#       That proxy is then one more proxy in front of the API: API_TRUST_PROXY_HOPS in
+#       docker-compose.prod.yml becomes 2, and this file needs
+#       "servers { trusted_proxies static <ODU proxy address range> }" in the global block, or
+#       Caddy will ignore the client address ODU's proxy passes along. Both numbers must be
+#       right or the rate limiter (threat model #15b) sees the wrong address.
+
+{
+	# Nothing here needs Caddy's admin interface.
+	admin off
+}
+
+{$SITE_ADDRESS} {
+	# The API, straight to the API container. Caddy sets X-Forwarded-For to the address it saw
+	# and throws away any value the client sent (this is Caddy's default for a client it does not
+	# trust), so the API, with API_TRUST_PROXY_HOPS=1, reads a real client address.
+	# The API sets its own security headers; Caddy adds none to its answers.
+	handle /api/* {
+		reverse_proxy api:{$API_PORT}
+	}
+
+	# The app's files, from the web container (nginx, infra/nginx.conf.template). Its security and
+	# caching headers are set there and pass through unchanged.
+	handle {
+		reverse_proxy web:80
+	}
+}
+
+# Health check for Docker only. Plain HTTP on a port the compose file does not publish.
+:8081 {
+	respond "ok" 200
+}

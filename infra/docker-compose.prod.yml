@@ -1,0 +1,281 @@
+# NOT YET RUN. There is no Docker daemon where this was written, so no service in this file has
+# ever started. It was only read. The first check on a machine with Docker is
+#   docker compose --env-file .env -f docker-compose.prod.yml config --quiet
+# run in this folder (that checks syntax and that every required setting is present, and prints
+# nothing; never run it without --quiet, because it would print the secrets). Then follow
+# docs/runbook.md, "First-time server setup".
+#
+# WHY A STANDALONE FILE and not an override of docker-compose.yml: an override can add to a list
+# but not take away from it, and the development file publishes the web port and has different
+# network and secret rules. Merging them would make it easy to leave a development setting in
+# production. The cost is some repeated lines. docker-compose.yml and docker-compose.dev.yml are
+# for a developer's machine only; this file is for a server only.
+#
+# WHAT IS REACHABLE FROM OUTSIDE: only "caddy", on ports 80 (redirects to 443) and 443.
+# Three networks keep everything else private:
+#   public  caddy only. The one network with a way out to the internet (it needs one to get its
+#           certificate and to answer visitors).
+#   proxy   internal: caddy, web, api. No route to the internet.
+#   backend internal: api, db, migrate, dbtools. No route to the internet. The database is only
+#           on this network, and publishes no port to the host (threat model #24).
+# No service except caddy has a "ports:" line. The API publishes nothing.
+#
+# SECRETS: every one comes from ".env" beside this file, on the server only. That file is not in
+# git (.gitignore), must be mode 600 (infra/deploy.sh checks) and is the only place the values
+# live. A "${NAME:?message}" below makes Compose stop with the message when NAME is missing or
+# empty. There is no default for any password or key, here or anywhere in this file.
+#
+# IMAGES are pinned by exact version tag (postgres also carries the digest CI already uses).
+# Pinning every image by digest is better, because a tag can be moved. It must be done on the
+# first deploy, from a machine with Docker: `docker pull <image:tag>`, then
+# `docker image inspect --format '{{index .RepoDigests 0}}' <image:tag>`, and paste the result
+# in place of the tag. The tags here for caddy, nginx and node were not checked against the
+# registry when this was written. The first pull will say if one does not exist.
+#
+# HARDENING that was chosen, and what was left out on purpose because it could not be tested here:
+#   Every container: restart unless-stopped, no-new-privileges, read-only root filesystem with
+#     small tmpfs folders where the program must write, capped log files, a health check.
+#   api and caddy: also cap_drop ALL (api needs none; caddy keeps only the one to bind port 80
+#     and 443). api runs as the "node" user (infra/api.Dockerfile).
+#   NOT done: cap_drop for db and web (the postgres and nginx start-up scripts change file
+#     owner and user, so they need a short list of capabilities that has to be found by trying),
+#     and running nginx as a non-root user (the official image listens on port 80 as root; the
+#     "unprivileged" variant listens on 8080 and is a different image and template). Tighten
+#     these after the first successful run. If a container will not start, the first things to
+#     suspect are its read_only and tmpfs lines: comment them out, note it, and tell Devin.
+#
+# HOW MANY PROXIES ARE IN FRONT OF THE API: ONE. A visitor's request goes
+#   visitor -> caddy -> api            (paths starting /api/)
+#   visitor -> caddy -> web (nginx)    (everything else; the API is not involved)
+# so API_TRUST_PROXY_HOPS is 1: the API trusts the one address Caddy wrote and reads the visitor's
+# address from it. The rate limiter (threat model #15b) is keyed on that address. If the number
+# is too LOW the limiter sees Caddy's own address and every visitor shares one bucket (sign-up
+# 20 an hour for the whole world). If it is too HIGH a visitor can write their own address and
+# escape the limit. TWO TRAPS: (1) do not send /api/ through nginx here. nginx's own rule
+# (infra/nginx.conf.template) replaces the forwarded address with the address it saw, which would
+# be Caddy's, so all visitors would look like one. (2) If ODU puts another proxy in front of
+# Caddy, the number is 2 and Caddy must be told to trust it (see infra/Caddyfile).
+name: tummy-time-prod
+
+x-common: &common
+  restart: unless-stopped
+  security_opt:
+    - no-new-privileges:true
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "5"
+
+services:
+  db:
+    <<: *common
+    image: postgres:17.11-alpine@sha256:3540c0362c809df084ffac0ae69fe794515f9de92692f02178bcdce0ef0302ac
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /run/postgresql
+    environment:
+      # The container's administrator. Used only to create the two users, on first start.
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      # Read by infra/db/init-roles.sh (through docker-init.sh) on the first start only.
+      DB_NAME: ${DB_NAME:?Set DB_NAME in .env}
+      DB_APP_USER: ${DB_APP_USER:?Set DB_APP_USER in .env}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:?Set DB_APP_PASSWORD in .env}
+      DB_MIGRATOR_USER: ${DB_MIGRATOR_USER:?Set DB_MIGRATOR_USER in .env}
+      DB_MIGRATOR_PASSWORD: ${DB_MIGRATOR_PASSWORD:?Set DB_MIGRATOR_PASSWORD in .env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./db:/tummy-db:ro
+      - ./db/docker-init.sh:/docker-entrypoint-initdb.d/10-tummy-users.sh:ro
+    # No ports. On the internal "backend" network only (threat model #24).
+    networks: [backend]
+    healthcheck:
+      # Over TCP on purpose: during first-start setup the server listens on its socket only,
+      # so this stays unhealthy until setup is finished.
+      test: ["CMD-SHELL", 'pg_isready -h 127.0.0.1 -U "$$POSTGRES_USER" -d postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # The API. Connects as the app user only; it never gets the migrator's password.
+  api:
+    <<: *common
+    build:
+      context: ..
+      dockerfile: infra/api.Dockerfile
+    image: tummy-time-api:${TUMMY_VERSION:?TUMMY_VERSION is set by infra/deploy.sh}
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    environment:
+      NODE_ENV: production
+      API_PORT: ${API_PORT:?Set API_PORT in .env}
+      API_HOST: 0.0.0.0
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      # One proxy (caddy) in front. See the long comment at the top before changing this.
+      API_TRUST_PROXY_HOPS: "1"
+      # Fixed here, not read from .env: the no-PIN test provider must never be possible.
+      AUTH_PROVIDER: family-code-pin
+      CODE_LOOKUP_SECRET: ${CODE_LOOKUP_SECRET:?Set CODE_LOOKUP_SECRET in .env}
+      APP_ORIGIN: ${APP_ORIGIN:?Set APP_ORIGIN in .env}
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: ${DB_NAME:?Set DB_NAME in .env}
+      DB_APP_USER: ${DB_APP_USER:?Set DB_APP_USER in .env}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:?Set DB_APP_PASSWORD in .env}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [proxy, backend]
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:' + process.env.API_PORT + '/api/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # The app's files (nginx). Built with the "Test site. Sample data." strip when SITE_BANNER=test.
+  web:
+    <<: *common
+    build:
+      context: ..
+      dockerfile: infra/web.Dockerfile
+      args:
+        SITE_BANNER: ${SITE_BANNER:-}
+        TUMMY_BUILD_ID: ${TUMMY_BUILD_ID:-local}
+    image: tummy-time-web:${TUMMY_VERSION:?TUMMY_VERSION is set by infra/deploy.sh}
+    read_only: true
+    # The nginx image writes its settings from the template into conf.d when it starts.
+    tmpfs:
+      - /etc/nginx/conf.d
+      - /var/cache/nginx
+      - /run
+      - /tmp
+    environment:
+      API_PORT: ${API_PORT:?Set API_PORT in .env}
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [proxy]
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # The outer proxy: ends HTTPS. The only service with ports. See infra/Caddyfile.
+  caddy:
+    <<: *common
+    image: caddy:2.10.2-alpine
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # A DNS name that points at this server, such as tummytime.example.org (a made-up name).
+      SITE_ADDRESS: ${SITE_ADDRESS:?Set SITE_ADDRESS in .env}
+      API_PORT: ${API_PORT:?Set API_PORT in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # The certificate, its private key and Caddy's account with the certificate authority.
+      # Back this volume up with the other secrets (docs/runbook.md). Losing it means a new
+      # certificate, which the authority rate-limits.
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    networks: [public, proxy]
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:8081/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---- Run on demand by infra/deploy.sh and the runbook (profile "tools"): never started by "up".
+
+  # Runs the migrations as the migrator user, then exits. Uses the API's image, so the migration
+  # files are exactly the ones in the version being deployed.
+  migrate:
+    image: tummy-time-api:${TUMMY_VERSION:?TUMMY_VERSION is set by infra/deploy.sh}
+    pull_policy: never
+    profiles: [tools]
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    command: ["node", "dist/cli/migrate.js"]
+    environment:
+      NODE_ENV: production
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: ${DB_NAME:?Set DB_NAME in .env}
+      DB_APP_USER: ${DB_APP_USER:?Set DB_APP_USER in .env}
+      DB_MIGRATOR_USER: ${DB_MIGRATOR_USER:?Set DB_MIGRATOR_USER in .env}
+      DB_MIGRATOR_PASSWORD: ${DB_MIGRATOR_PASSWORD:?Set DB_MIGRATOR_PASSWORD in .env}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [backend]
+
+  # bash + pg_dump + pg_restore + psql on the database's private network, for infra/backup.sh,
+  # infra/restore.sh and infra/db/init-roles.sh. Connects as the MIGRATOR user. To act as the
+  # administrator for init-roles.sh, override PGUSER and PGPASSWORD on the command line.
+  # /infra is this folder (read-only); /backups is BACKUP_DIR on the host, outside every Docker
+  # volume of this stack.
+  dbtools:
+    build:
+      context: .
+      dockerfile: dbtools.Dockerfile
+    image: tummy-time-dbtools:17.11
+    profiles: [tools]
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    environment:
+      PGHOST: db
+      PGPORT: "5432"
+      PGDATABASE: ${DB_NAME:?Set DB_NAME in .env}
+      PGUSER: ${DB_MIGRATOR_USER:?Set DB_MIGRATOR_USER in .env}
+      PGPASSWORD: ${DB_MIGRATOR_PASSWORD:?Set DB_MIGRATOR_PASSWORD in .env}
+      # init-roles.sh reads these.
+      DB_NAME: ${DB_NAME:?Set DB_NAME in .env}
+      DB_APP_USER: ${DB_APP_USER:?Set DB_APP_USER in .env}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:?Set DB_APP_PASSWORD in .env}
+      DB_MIGRATOR_USER: ${DB_MIGRATOR_USER:?Set DB_MIGRATOR_USER in .env}
+      DB_MIGRATOR_PASSWORD: ${DB_MIGRATOR_PASSWORD:?Set DB_MIGRATOR_PASSWORD in .env}
+    volumes:
+      - ./:/infra:ro
+      - ${BACKUP_DIR:?Set BACKUP_DIR in .env (a folder on the server, outside the app's own data)}:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [backend]
+
+networks:
+  public: {}
+  proxy:
+    internal: true
+  backend:
+    internal: true
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:

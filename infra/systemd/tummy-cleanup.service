@@ -1,0 +1,11 @@
+# NOT YET RUN. EXAMPLE, not installed by anything. See tummy-backup.service for how to install.
+# Runs the daily cleanup of ended sessions and old audit events (infra/cleanup-scheduled.sh).
+[Unit]
+Description=Tummy Time daily cleanup of ended sessions and old audit events
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=tummydeploy
+ExecStart=/opt/tummy-time/infra/cleanup-scheduled.sh

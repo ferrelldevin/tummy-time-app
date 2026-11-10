@@ -1,0 +1,12 @@
+# NOT YET RUN. EXAMPLE. Once a day, after the backup, so a bad cleanup always has a fresh backup
+# behind it.
+[Unit]
+Description=Tummy Time daily cleanup
+
+[Timer]
+OnCalendar=*-*-* 04:15:00
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

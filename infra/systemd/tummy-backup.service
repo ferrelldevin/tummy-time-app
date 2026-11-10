@@ -1,0 +1,13 @@
+# NOT YET RUN. EXAMPLE, not installed by anything. Copy to /etc/systemd/system/ on the server and
+# change User= and the two paths. docs/runbook.md, "First-time server setup", says when.
+# Runs one backup (and the 30-day delete) as the deploy user, which must be in the docker group
+# and own infra/.env. Encryption and an off-server copy are NOT solved: see infra/backup-scheduled.sh.
+[Unit]
+Description=Tummy Time database backup
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=tummydeploy
+ExecStart=/opt/tummy-time/infra/backup-scheduled.sh

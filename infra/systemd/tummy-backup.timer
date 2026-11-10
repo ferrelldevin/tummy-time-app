@@ -1,0 +1,12 @@
+# NOT YET RUN. EXAMPLE. Once a day. Persistent=true runs a missed backup when the server comes
+# back up. Pick the hour with whoever runs the server; it is not decided here.
+[Unit]
+Description=Tummy Time daily database backup
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target
