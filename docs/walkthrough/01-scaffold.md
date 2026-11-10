@@ -159,7 +159,7 @@ pnpm dev
 - **Not yet seen running:** the CI workflow on GitHub, the secret scan, the OSV scan, CodeQL, and the container files. This workspace has no Docker service, and the two scanners could not be installed here. The first CI run on the pull request is their first real test.
 - **CodeQL may need a paid GitHub plan** on a private repo. If its job fails for that reason, Devin decides between a plan change and dropping that one check.
 - **Two tools are held one version back** (TypeScript 6, ESLint 9) because the lint plugins do not support the newest yet. Dependabot will raise it when they do.
-- **One moderate advisory** (in `minimatch`, used only by a lint tool, never shipped to phones) is below the "high" bar that fails the build. It is recorded here so it is not forgotten.
+- **A dependency advisory was fixed at its cause.** The first CI run failed because the OSV scan flagged `minimatch` 10.2.6 (a moderate advisory, used only by a lint tool, never shipped to phones). Its fix is in 11.0.1, but the lint tool still asks for 10. The `pnpm.overrides` entry in the root `package.json` forces the fixed version for that one tool, and lint was re-run to prove it still works. Remove the override once `typescript-eslint` asks for the fixed version itself. This is the scan doing its job: we fixed the cause instead of telling the scan to look away.
 - The data-map and content tests are placeholders until Blocks 3 and 5.
 
 Written with AI assistance and reviewed by Devin Ferrell.
