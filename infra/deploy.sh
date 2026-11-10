@@ -107,8 +107,8 @@ fi
 # SITE_ADDRESS=localhost, where Caddy makes its own; or an ODU-internal authority). Empty means
 # the system's normal list. The check never runs without verifying the certificate.
 ca_file="$(env_value HEALTH_CA_FILE)"
-if [ -n "$ca_file" ] && [ ! -r "$ca_file" ]; then
-  echo "deploy: HEALTH_CA_FILE ($ca_file) cannot be read." >&2
+if [ -n "$ca_file" ] && { [ ! -f "$ca_file" ] || [ ! -r "$ca_file" ]; }; then
+  echo "deploy: HEALTH_CA_FILE ($ca_file) is not a file this user can read." >&2
   exit 1
 fi
 timeout="$(env_value HEALTH_TIMEOUT_SECONDS)"
@@ -129,6 +129,15 @@ fi
 # Compose checks that every required setting is present. --quiet: it must not print the values.
 compose --profile tools config --quiet
 
+health_err="$(mktemp)"
+trap 'rm -f "$health_err"' EXIT
+# why_unhealthy: prints the last thing curl said, if anything.
+why_unhealthy() {
+  if [ -s "$health_err" ]; then
+    echo "deploy: the last health check said: $(tail -n 1 "$health_err")" >&2
+  fi
+}
+
 # wait_for_health: asks the local proxy for /api/health under the site's own name, so the real
 # certificate is checked, without depending on the server being able to reach itself by name.
 wait_for_health() {
@@ -139,7 +148,9 @@ wait_for_health() {
   fi
   while [ "$SECONDS" -lt "$deadline" ]; do
     # --noproxy: this request is to this machine and must never leave it through a web proxy.
-    body="$(curl -sS --fail --max-time 5 --noproxy '*' ${trust[@]+"${trust[@]}"} --resolve "$host:443:127.0.0.1" "https://$host/api/health" 2>/dev/null || true)"
+    # curl's own complaint is kept (it names no secret) and shown if the wait fails, so a wrong
+    # certificate authority does not look the same as a version that will not start.
+    body="$(curl -sS --fail --max-time 5 --noproxy '*' ${trust[@]+"${trust[@]}"} --resolve "$host:443:127.0.0.1" "https://$host/api/health" 2>"$health_err" || true)"
     if [ "$body" = '{"ok":true}' ]; then
       return 0
     fi
@@ -158,6 +169,18 @@ echo "deploy: version $version (build $TUMMY_BUILD_ID). Previous: ${previous:-no
 
 echo "deploy: 3/8 building images. Nothing running is changed yet."
 compose --profile tools build
+
+# The proxy's settings file is checked BEFORE anything running is touched. The proxy is started
+# fresh in step 6 with the file from this checkout, and going back would start it with the same
+# file, so a file Caddy cannot read would be an outage the script could not undo. This catches
+# a file that is not valid. It cannot catch one that is valid but wrong (sends requests to the
+# wrong place): that shows up as a failed health check, and the fix is to check out the previous
+# version and deploy it.
+if ! compose run --rm -T --no-deps caddy caddy validate --config /etc/caddy/Caddyfile >/dev/null 2>&1; then
+  echo "deploy: infra/Caddyfile is not valid, so nothing was changed. To see why, run:" >&2
+  echo "deploy:   docker compose --env-file .env -f docker-compose.prod.yml run --rm --no-deps caddy caddy validate --config /etc/caddy/Caddyfile" >&2
+  exit 1
+fi
 
 echo "deploy: 4/8 starting the database if needed, then taking a backup."
 compose up -d --no-build --wait db
@@ -194,6 +217,7 @@ fi
 
 # ---- It did not come up healthy: go back.
 echo "deploy: version $version did NOT answer /api/health in time." >&2
+why_unhealthy
 if [ -z "$previous" ]; then
   echo "deploy: there is no previous version to go back to. The new one is left as it is: read its logs" >&2
   echo "deploy: (docs/runbook.md, \"Read the logs\")." >&2

@@ -22,7 +22,8 @@
 #       "http://{$SITE_ADDRESS}" as the site address and put "auto_https off" in the global block.
 #       That proxy is then one more proxy in front of the API: API_TRUST_PROXY_HOPS in
 #       docker-compose.prod.yml becomes 2, and this file needs
-#       "servers { trusted_proxies static <ODU proxy address range> }" in the global block, or
+#       "trusted_proxies static <ODU proxy address range>" INSIDE the "servers" block that is
+#       already in the global block below (a second "servers" block stops Caddy starting), or
 #       Caddy will ignore the client address ODU's proxy passes along. Both numbers must be
 #       right or the rate limiter (threat model #15b) sees the wrong address.
 

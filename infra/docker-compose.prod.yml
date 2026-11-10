@@ -239,7 +239,7 @@ services:
   # (The image already has bash, which the scripts need. Checked by running it.)
   dbtools:
     image: postgres:17.11-alpine@sha256:3540c0362c809df084ffac0ae69fe794515f9de92692f02178bcdce0ef0302ac
-    # Not the image's own start-up script: that would try to start a second database.
+    # The image's own start-up script is not needed: the scripts and psql are run directly.
     entrypoint: []
     profiles: [tools]
     restart: "no"

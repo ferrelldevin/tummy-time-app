@@ -87,7 +87,7 @@ export default defineConfig(({ mode, isPreview }) => {
     },
     test: {
       environment: "jsdom",
-      include: ["src/**/*.test.{ts,tsx}"],
+      include: ["src/**/*.test.{ts,tsx}", "tooling/**/*.test.ts"],
       setupFiles: ["src/test/setup.ts"],
     },
   };

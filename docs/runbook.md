@@ -439,6 +439,8 @@ What the script does, in order, and where it stops: it refuses without a private
 
 **What "starts the new version" means.** The script starts the proxy (`caddy`), `web` and `api` fresh on every deploy, even if their settings did not change. Caddy reads `infra/Caddyfile` only when it starts, so a changed Caddyfile would otherwise be ignored. The database is not restarted. When the script goes back to the previous version, it uses the **Caddyfile of the checkout you are standing in**, not the old version's. If the old version needs its own Caddyfile, check it out and deploy it again.
 
+**A changed `infra/Caddyfile`.** Before it touches anything running, the script asks Caddy to check the file. A file Caddy cannot read stops the deploy there, with nothing changed. A file that is valid but wrong (it sends requests to the wrong place) cannot be caught that way: the health check fails, and going back does **not** fix it, because the old version is started with the same file from this checkout. The fix is to check out the previous version and deploy it (section 15). If the health check fails, the script also prints the last thing `curl` said, which tells a certificate problem (for example a wrong `HEALTH_CA_FILE`) from a version that will not start.
+
 | What the script says | What it means | What to do |
 |---|---|---|
 | `refusing to run as root` | You are root | Use `tummydeploy` |

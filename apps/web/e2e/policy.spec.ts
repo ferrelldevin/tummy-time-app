@@ -117,12 +117,22 @@ test("no screen breaks the policy, signed out or signed in", async ({ page }) =>
   await page.goto("/account");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
-  // The service worker is installed from our own file, under the same policy.
+  // The service worker installs from our own file. (Only the page's own violations are seen
+  // here; the worker's script runs in its own scope and reports nothing to the page.)
   await expect
     .poll(() =>
       page.evaluate(async () => (await navigator.serviceWorker.getRegistration())?.active?.state),
     )
     .toBe("activated");
 
-  expect(seen).toEqual([]);
+  // Last, break the policy once on purpose, on this very page. Seeing exactly that one report
+  // proves the listener was still attached after every navigation above (so an empty list would
+  // not have been empty by accident) and that no earlier report was still on its way.
+  await page.evaluate(() => {
+    const script = document.createElement("script");
+    script.textContent = "window.tummyInlineRan = true;";
+    document.body.append(script);
+  });
+  await expect.poll(() => seen.length).toBeGreaterThan(0);
+  expect(seen).toEqual([{ directive: "script-src-elem", blocked: "inline" }]);
 });

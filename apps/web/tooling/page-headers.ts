@@ -14,12 +14,20 @@ export function parseAddHeaders(text: string): Record<string, string> {
   const headers = new Map<string, string>();
   for (const line of text.split("\n")) {
     const trimmed = line.trim();
-    if (!trimmed.startsWith("add_header ")) {
+    if (/^include\s/.test(trimmed)) {
+      throw new Error(`This file must hold every header itself, with no include: ${trimmed}`);
+    }
+    if (!/^add_header\s/.test(trimmed)) {
       continue;
     }
-    const match = /^add_header (\S+) "([^"]*)"(?: always)?;$/.exec(trimmed);
+    const match = /^add_header\s+(\S+)\s+"([^"\\]*)"(?:\s+always)?;$/.exec(trimmed);
     if (!match?.[1] || match[2] === undefined) {
       throw new Error(`Cannot read this add_header line: ${trimmed}`);
+    }
+    if (headers.has(match[1])) {
+      // nginx would send both, and a browser enforces both. One line per header, so what the
+      // tests run under is exactly what nginx sends.
+      throw new Error(`The header ${match[1]} is set twice.`);
     }
     headers.set(match[1], match[2]);
   }
