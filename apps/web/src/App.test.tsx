@@ -15,7 +15,7 @@ function renderAt(path: string) {
 }
 
 beforeEach(() => {
-  // Signed in, so the Log placeholder shows. Signed-out behavior is in pages/account/*.test.tsx.
+  // Signed in, so the Log screens show. Signed-out behavior is in pages/account/*.test.tsx.
   stubApi({ signedIn: true });
 });
 
@@ -93,13 +93,10 @@ describe("When to call is one tap away from every screen", () => {
 });
 
 // "/when-to-call", "/lessons" and "/lessons/:id" are real screens now (Block 5). They are tested
-// in pages/WhenToCall.test.tsx and pages/Lessons.test.tsx, and below.
+// in pages/WhenToCall.test.tsx and pages/Lessons.test.tsx, and below. "/start-tummy-time" and
+// "/log" are real screens too (Block 6), tested in pages/log/log.test.tsx.
 describe("placeholder screens", () => {
-  const screens = [
-    ["/start-tummy-time", en.startTummyTime.title],
-    ["/baby-crying", en.babyCrying.title],
-    ["/log", en.log.title],
-  ] as const;
+  const screens = [["/baby-crying", en.babyCrying.title]] as const;
 
   it.each(screens)("%s shows its title and the draft label", async (path, title) => {
     renderAt(path);
