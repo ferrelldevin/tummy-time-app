@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { axeViolations } from "./axe";
+import { sidewaysOverflow } from "./layout";
 
 // Runs against the development server, the only place /styleguide exists.
 
@@ -15,9 +16,7 @@ test("style guide holds at 320 px wide with no sideways scroll", async ({ page }
   await page.setViewportSize({ width: 320, height: 640 });
   await page.goto("/styleguide");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-  const overflow = await page.evaluate(
-    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-  );
+  const overflow = await sidewaysOverflow(page);
   expect(overflow).toBeLessThanOrEqual(0);
 });
 

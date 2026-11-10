@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { axeViolations } from "./axe";
+import { sidewaysOverflow } from "./layout";
 
 /**
  * Sign-up, sign-in and sessions in a real browser, through the real family-code-pin provider,
@@ -12,9 +13,7 @@ import { axeViolations } from "./axe";
 const PIN = "482916";
 
 async function noSidewaysScroll(page: Page): Promise<void> {
-  const overflow = await page.evaluate(
-    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-  );
+  const overflow = await sidewaysOverflow(page);
   expect(overflow).toBeLessThanOrEqual(0);
 }
 
