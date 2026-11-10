@@ -14,6 +14,8 @@ COPY apps/web apps/web
 ARG SITE_BANNER=""
 ARG TUMMY_BUILD_ID="local"
 ENV SITE_BANNER=$SITE_BANNER TUMMY_BUILD_ID=$TUMMY_BUILD_ID
+# The lessons and the When to call card. The build compiles them into the app's files.
+COPY content content
 RUN pnpm --filter @tummy/shared build && pnpm --filter @tummy/web exec vite build
 
 FROM nginx:1.31.2-alpine

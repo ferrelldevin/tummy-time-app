@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "./zod.js";
 
 /** What GET /api/health returns. The API builds it and the web app checks it. */
 export const healthResponseSchema = z.strictObject({

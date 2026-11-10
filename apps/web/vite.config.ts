@@ -5,8 +5,9 @@ import { VitePWA } from "vite-plugin-pwa";
 import { defineConfig } from "vitest/config";
 import { nextBuildPreview } from "./e2e/next-build-preview.ts";
 import { buildIdPlugin } from "./tooling/build-id.ts";
+import { pageSecurityHeaders } from "./tooling/page-headers.ts";
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, isPreview }) => {
   // Read the shared .env at the repo root so web and api agree on ports.
   const env = loadEnv(mode, resolve(import.meta.dirname, "../.."), "");
   const apiTarget = `http://127.0.0.1:${env.API_PORT ?? "3001"}`;
@@ -76,10 +77,13 @@ export default defineConfig(({ mode }) => {
       port: Number(env.WEB_PREVIEW_PORT ?? "4173"),
       strictPort: true,
       proxy,
-      // The same Referrer-Policy nginx sends with the page (infra/nginx.conf.template). It can
-      // change the Origin header a browser sends, which the API checks, so the browser tests run
-      // with it too.
-      headers: { "Referrer-Policy": "no-referrer" },
+      // The same security headers nginx sends with the page, read from nginx's own file
+      // (tooling/page-headers.ts), so the browser tests run under the real Content Security
+      // Policy (e2e/policy.spec.ts) and the real Referrer-Policy, which can change the Origin
+      // header a browser sends and the API checks.
+      // Read only when previewing: a build (and the Docker build, which has no infra/ folder)
+      // never needs the file.
+      ...(isPreview ? { headers: pageSecurityHeaders() } : {}),
     },
     test: {
       environment: "jsdom",

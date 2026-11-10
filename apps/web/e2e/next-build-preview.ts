@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { extname, join, normalize, resolve, sep } from "node:path";
 import type { Plugin } from "vite";
+import { pageSecurityHeaders } from "../tooling/page-headers.ts";
 
 /** The cookie a browser test sets to be served the second build. */
 export const NEXT_BUILD_COOKIE = "e2e-build=next";
@@ -54,7 +55,9 @@ export function nextBuildPreview(dir: string): Plugin {
           return;
         }
         res.setHeader("Content-Type", types[extname(file)] ?? "application/octet-stream");
-        res.setHeader("Referrer-Policy", "no-referrer");
+        for (const [name, value] of Object.entries(pageSecurityHeaders())) {
+          res.setHeader(name, value);
+        }
         res.end(readFileSync(file));
       });
     },
