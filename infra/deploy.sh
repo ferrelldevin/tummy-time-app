@@ -177,7 +177,10 @@ fi
 
 echo "deploy: 6/8 starting version $version and waiting up to ${timeout}s for /api/health."
 healthy="no"
-if compose up -d --no-build --remove-orphans && wait_for_health; then
+# --force-recreate caddy web api: the proxy reads infra/Caddyfile only when it starts, and Compose
+# does not notice that a mounted file changed. Starting the three fresh on every deploy means a
+# changed Caddyfile always takes effect. The database is not named, so it keeps running.
+if compose up -d --no-build --remove-orphans --force-recreate caddy web api && wait_for_health; then
   healthy="yes"
 fi
 
@@ -205,7 +208,7 @@ fi
 echo "deploy: starting the previous version ($previous) again." >&2
 (
   export TUMMY_VERSION="$previous"
-  compose up -d --no-build --remove-orphans
+  compose up -d --no-build --remove-orphans --force-recreate caddy web api
 ) || true
 if wait_for_health; then
   echo "deploy: the previous version ($previous) is answering again. $STATE_FILE still says $previous." >&2
