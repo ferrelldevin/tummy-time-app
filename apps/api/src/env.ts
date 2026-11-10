@@ -5,6 +5,12 @@ const envSchema = z.object({
   API_PORT: z.coerce.number().int().min(1).max(65535),
   API_HOST: z.string().min(1).default("127.0.0.1"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
+  /**
+   * How many reverse proxies sit in front of the API. 0 when the API is reached directly (dev).
+   * 1 behind the nginx in infra/, which overwrites X-Forwarded-For with the address it saw.
+   * The rate limiter uses the address this yields, in memory only.
+   */
+  API_TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
 });
 
 export type Env = z.infer<typeof envSchema>;
