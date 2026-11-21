@@ -840,6 +840,8 @@ h2 {
 .next-card__go {
   display: grid;
   place-items: center;
+  /* If it wraps to a row of its own (200% text on a small phone), it stays on the right. */
+  margin-left: auto;
   padding-right: var(--space-3);
   color: var(--color-primary);
 }
