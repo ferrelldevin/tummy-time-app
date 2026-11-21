@@ -21,7 +21,8 @@ This chapter explains the demo built to show the client: how the same app runs w
 | "Baby crying?" coach | `apps/web/src/pages/BabyCrying.tsx` | Yes |
 | Week chart | `apps/web/src/pages/log/WeekChart.tsx`, `log/week.ts` | Yes |
 | New look: font, colors, icons, drawings, motion | `apps/web/src/design/`, `components/Icon.tsx`, `Illustration.tsx`, `styles.css` | Yes, with contrast tests and axe |
-| Demo browser tests | `apps/web/e2e-demo/demo.spec.ts` | Yes, 6 tests on 2 phone sizes |
+| Night theme (follows the phone's dark mode) | `apps/web/src/design/tokens.css` (dark block), `index.html` | Yes: contrast of every pair in both themes (`tokens.test.ts`), axe in dark mode in the demo browser tests |
+| Demo browser tests | `apps/web/e2e-demo/demo.spec.ts` | Yes, 7 tests on 2 phone sizes |
 
 ## 2. Why this way
 
@@ -40,6 +41,8 @@ This chapter explains the demo built to show the client: how the same app runs w
 **Lesson order lives in the lesson files.** Each lesson file says its own `order`, `pathways` tags, `minutes`, drawing and quick checks. The code only decides which tags apply to a family. Adding a lesson is still "add a file" (`docs/adding-a-lesson.md`).
 
 **Placeholders you can see.** A step that needs the care team's words is written `CARE TEAM: ...` in the lesson file and shows on screen as a marked gap, not as advice. A video that is planned shows as a "video goes here" slot. A test fails the build if any lesson stops being `status: placeholder` without a sign-off.
+
+**A night theme, because of 3 AM.** Parents of babies born early use this app in a dark room, often at night. A white screen there is glaring and can wake the baby. The phone already knows whether its owner wants dark mode, so the app follows that setting with `@media (prefers-color-scheme: dark)`. Only the color tokens change; every component already uses tokens, so no component code changed. The contrast test now checks every text pair twice, once per theme, and fails if a night color is too faint.
 
 **Motion only when asked for.** All animation sits inside `@media (prefers-reduced-motion: no-preference)`. A phone set to reduce motion gets none. A browser test checks it.
 

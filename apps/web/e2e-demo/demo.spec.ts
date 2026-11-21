@@ -128,3 +128,36 @@ test("with reduced motion asked for, nothing animates", async ({ page }) => {
   const running = await page.evaluate(() => document.getAnimations().length);
   expect(running).toBe(0);
 });
+
+test("the night theme follows the phone's dark mode and passes axe, contrast included", async ({
+  page,
+}) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.goto("/");
+  const h1 = page.getByRole("heading", { level: 1 });
+  await expect(h1).toBeVisible();
+  const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  expect(bg).toBe("rgb(15, 24, 27)");
+  await noViolations(page);
+  // Signed out, Log opens Welcome.
+  for (const [name, heading] of [
+    ["Lessons", "Lessons"],
+    ["Log", "Welcome"],
+    ["When to call", "When to call"],
+  ] as const) {
+    await nav(page).getByRole("link", { name }).click();
+    await expect(h1).toHaveText(heading);
+    await noViolations(page);
+  }
+  await nav(page).getByRole("link", { name: "Lessons" }).click();
+  await page
+    .getByRole("link", { name: /Why tummy time matters/ })
+    .first()
+    .click();
+  await expect(h1).toHaveText("Why tummy time matters");
+  await noViolations(page);
+  await nav(page).getByRole("link", { name: "Home" }).click();
+  await page.getByRole("link", { name: /^Baby crying\? Try this/ }).click();
+  await expect(h1).toHaveText("Baby crying? Try this");
+  await noViolations(page);
+});
