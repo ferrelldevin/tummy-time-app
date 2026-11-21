@@ -128,11 +128,20 @@ test("the whole demo click path works, passes axe on every screen, with no error
 test("nothing scrolls sideways at 200% text size on the main screens", async ({ page }) => {
   await page.goto("/");
   await doubleTextSize(page);
-  for (const name of ["Lessons", "Log", "When to call", "Home"]) {
+  const h1 = page.getByRole("heading", { level: 1 });
+  // Wait for each screen's own heading, so the check measures that screen and not a loading one.
+  for (const [name, heading] of [
+    ["Lessons", "Lessons"],
+    ["Log", "Welcome"],
+    ["When to call", "When to call"],
+    ["Home", "Tummy Time"],
+  ] as const) {
     await nav(page).getByRole("link", { name }).click();
+    await expect(h1).toHaveText(heading);
     expect(await sidewaysOverflow(page), name).toBeLessThanOrEqual(0);
   }
   await page.getByRole("link", { name: /^Baby crying\? Try this/ }).click();
+  await expect(h1).toHaveText("Baby crying? Try this");
   expect(await sidewaysOverflow(page), "Baby crying?").toBeLessThanOrEqual(0);
 });
 

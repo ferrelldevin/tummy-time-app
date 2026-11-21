@@ -1209,8 +1209,9 @@ h2 {
   position: relative;
   display: grid;
   place-items: center;
-  width: 11rem;
-  height: 11rem;
+  /* Never wider than the screen allows, even at 200% text size or when it grows on "Breathe in". */
+  width: min(11rem, 80%);
+  aspect-ratio: 1;
   margin: var(--space-3) auto;
   border-radius: 50%;
   background: var(--color-surface);
