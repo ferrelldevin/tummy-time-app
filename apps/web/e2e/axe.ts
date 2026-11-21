@@ -19,6 +19,10 @@ async function settle(page: Page): Promise<void> {
 
 /** Runs axe with every WCAG 2.0 to 2.2 A and AA rule plus best practices. Contrast is on. */
 export async function axeViolations(page: Page) {
+  // Park the pointer in a corner first. After a tap the pointer still rests on the button it
+  // tapped; when axe scrolls the page to measure, the button slides out from under it, its hover
+  // color starts to fade, and axe can catch the fade halfway.
+  await page.mouse.move(0, 0);
   await settle(page);
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"])

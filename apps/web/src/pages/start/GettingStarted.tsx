@@ -39,7 +39,10 @@ export function GettingStarted() {
       firstRender.current = false;
       return;
     }
-    legend.current?.focus();
+    // Each question is a new screen, so it starts at the top with "Question n of 4" in sight.
+    const scroller = legend.current?.closest(".app-scroll");
+    if (scroller) scroller.scrollTop = 0;
+    legend.current?.focus({ preventScroll: Boolean(scroller) });
   }, [step]);
 
   const answered = [age, born, topics, going][step - 1] !== null;

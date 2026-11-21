@@ -39,8 +39,14 @@ test("the whole demo click path works, passes axe on every screen, with no error
   await page.getByRole("button", { name: "Next" }).click();
   await page.getByLabel("None of these, or not sure").check();
   await page.getByRole("button", { name: "Next" }).click();
+  // Each question opens at the top, with its progress line in sight.
+  await expect(page.getByText("Question 4 of 4")).toBeInViewport();
+  expect(await page.locator(".app-scroll").evaluate((el) => el.scrollTop)).toBe(0);
   await page.getByLabel("My baby cries or fusses").check();
   const scroller = page.locator(".app-scroll");
+  await scroller.evaluate((el) => {
+    el.scrollTo(0, el.scrollHeight);
+  });
   expect(await scroller.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
   await page.getByRole("button", { name: "See my plan" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Your plan" })).toBeFocused();
