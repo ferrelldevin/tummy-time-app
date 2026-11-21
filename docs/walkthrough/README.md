@@ -21,6 +21,7 @@ A study guide for the project, written for a CS student. One chapter per build b
 | 6 | [Tummy time log and sync](06-log-and-sync.md) | Written |
 | 7 | [Offline and install](07-offline-and-install.md) | Written |
 | 8 | [Deploy, runbook and the daily cleanup](08-deploy-and-runbook.md) | Written. The server files were run in Docker during the review, with a test certificate; nothing has been run on a real server yet |
+| Demo | [Client demo: the app with a pretend server](09-client-demo.md) | Written. Draft pull request; checked in a browser at two phone sizes, not yet on a real phone |
 
 ## Open the project on your own computer
 
@@ -28,8 +29,8 @@ You need Git ([git-scm.com](https://git-scm.com/downloads)) and an editor such a
 
 Runs in: Git Bash (or PowerShell)
 ```bash
-git clone https://github.com/ferrelldevin/tummy-time.git
-cd tummy-time
+git clone https://github.com/ferrelldevin/tummy-time-app.git
+cd tummy-time-app
 code .
 ```
 

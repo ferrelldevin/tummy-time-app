@@ -17,5 +17,6 @@ All nine are **Proposed** as of Nov 10, 2026. Dr. Gupta approves the platform; D
 | [0007](0007-hosting.md) | Hosting: containers, temporary staging, then ODU | Proposed |
 | [0008](0008-postgresql-and-database-users.md) | PostgreSQL, two database users, database required at start-up | Proposed |
 | [0009](0009-rev-order-per-account.md) | One account's log writes are committed in rev order (account lock) | Proposed |
+| [0010](0010-client-demo-build.md) | A client demo build with a pretend API in the browser | Proposed |
 
 To add one: copy the newest file, give it the next number, and add a row here. Never edit an Accepted record's decision; write a new one that supersedes it.

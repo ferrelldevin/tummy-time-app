@@ -18,6 +18,8 @@ Planning, documents and code in this repo are produced with AI assistance (Anthr
 - PostgreSQL documentation (roles and privileges, pg_dump, pg_restore), used for infra/db/ and the backup scripts. PostgreSQL License.
 - Flesch-Kincaid grade level formula (Kincaid and others, 1975), implemented by us in apps/web/src/strings/readability.ts as an approximation.
 - AHRQ PEMAT and the CDC Clear Communication Index (content checks).
+- Draft lesson points (all PLACEHOLDER, not checked by a clinician) follow general public guidance, rewritten in our own words, from: American Academy of Pediatrics, HealthyChildren.org, "Back to Sleep, Tummy to Play" (https://www.healthychildren.org/English/ages-stages/baby/sleep/Pages/Back-to-Sleep-Tummy-to-Play.aspx); and NICHD Safe to Sleep campaign, "Tummy Time for a Healthy Baby" (https://safetosleep.nichd.nih.gov/safesleepbasics/tummytime). No text, image or video is copied from either.
+- Corrected age (age since birth minus weeks born early) is the standard definition used in neonatal follow-up; the app shows it only as a range.
 
 ## Libraries and assets
 Every library, image, font or dataset is listed here by name, with its license.
@@ -72,7 +74,13 @@ Container images
 - postgres, nginx, node (official Docker images; CI also runs postgres as a throwaway service container). Licenses of the software inside: PostgreSQL License, BSD-2-Clause, MIT.
 - caddy 2.10.2 (official Docker image; the HTTPS proxy in the production stack, infra/Caddyfile). Apache-2.0.
 
+Fonts
+- Atkinson Hyperlegible Next by the Braille Institute of America (designed for readers with low vision), latin subset, weights 400, 700 and 800, as woff2 files from the @fontsource/atkinson-hyperlegible-next 5.3.0 package. Copied into `apps/web/src/design/fonts/` and served from our own server; the package is not a dependency. SIL Open Font License 1.1, full text in `apps/web/src/design/fonts/OFL.txt`.
+
 Images
+- Drawings of caregivers and babies (`apps/web/src/components/Illustration.tsx`): flat SVG scenes drawn in code for this repo, in three skin tones. PLACEHOLDER art, not medical diagrams: they do not show correct positions and must not be used to teach one. No third-party art, no AI image generator.
+- Line icons (`apps/web/src/components/Icon.tsx`) and the brand mark (`BrandMark.tsx`): drawn for this repo as SVG paths. No icon library.
+- Video: none. Lessons show a marked "video goes here" slot (`videoPlanned` in the lesson file) until the client supplies or approves real video.
 - App icons (`apps/web/public/icons/`): a PLACEHOLDER, drawn for this repo as a plain SVG in the design token colors, and rendered to PNG by `scripts/render-icons.mjs` with Playwright's Chromium. No third-party art, no fonts. Not the client's logo; replace it when the client supplies one.
 
 Licenses are as published by each project; confirm before any release.
