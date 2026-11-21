@@ -51,10 +51,63 @@ async function addEntry(minutesAgo: number, durationSeconds: number) {
 }
 
 describe("Start tummy time", () => {
-  it("needs sign-in", async () => {
+  // Home's big button must never lead to a sign-in wall. Signed out, the timer works and saves
+  // nothing: no log, no IndexedDB, no localStorage.
+  it("works signed out, says it saves nothing, offers sign-in, and has no axe violations", async () => {
+    stubApi({ signedIn: false });
+    const now = vi.spyOn(Date, "now");
+    now.mockReturnValue(1_800_000_000_000);
+    const { container } = renderAt("/start-tummy-time");
+    await screen.findByRole("heading", { level: 1, name: en.startTummyTime.title });
+    expect(screen.getByText(en.startTummyTime.notSignedIn)).toBeDefined();
+    expect(
+      screen.getByRole("link", { name: en.startTummyTime.signInToSave }).getAttribute("href"),
+    ).toBe("/welcome");
+    expect(await axeViolations(container)).toEqual([]);
+    fireEvent.click(screen.getByRole("button", { name: en.startTummyTime.start }));
+    expect(screen.getByText(en.startTummyTime.started).getAttribute("role")).toBe("status");
+    now.mockReturnValue(1_800_000_000_000 + 5 * 60_000 + 400);
+    fireEvent.click(screen.getByRole("button", { name: en.startTummyTime.stopSignedOut }));
+    expect(
+      await screen.findByText(
+        "That was 5 minutes of tummy time. Every minute counts. It was not saved.",
+      ),
+    ).toBeDefined();
+    now.mockRestore();
+    expect(await databaseNames()).not.toContain(LOCAL_DB_NAME);
+    expect(localStorage.length).toBe(0);
+  });
+
+  it("still works when the sign-in check fails, because the timer needs no server", async () => {
+    stubApi({
+      signedIn: true,
+      replies: {
+        "GET /api/me": [{ status: 500, body: { error: { code: "internal", message: "Oops." } } }],
+      },
+    });
+    const { container } = renderAt("/start-tummy-time");
+    await screen.findByRole("heading", { level: 1, name: en.startTummyTime.title });
+    // It does not claim the person is signed out; it says the check failed and offers a retry.
+    expect(screen.getByText(en.startTummyTime.checkFailed)).toBeDefined();
+    expect(screen.queryByText(en.startTummyTime.notSignedIn)).toBeNull();
+    expect(await axeViolations(container)).toEqual([]);
+    fireEvent.click(screen.getByRole("button", { name: en.startTummyTime.start }));
+    // The retry passes (the stub answers signed in now): the same running timer can be saved.
+    const retry = screen.getByRole("button", { name: en.states.tryAgain });
+    fireEvent.click(retry);
+    // One check at a time.
+    expect(retry.getAttribute("aria-disabled")).toBe("true");
+    await screen.findByText(en.log.sync.saved);
+    expect(screen.getByRole("button", { name: en.startTummyTime.stop })).toBeDefined();
+  });
+
+  it("signed out, a very short tap is not praised as tummy time", async () => {
     stubApi({ signedIn: false });
     renderAt("/start-tummy-time");
-    expect(await screen.findByRole("heading", { level: 1, name: en.account.welcome.title }));
+    await screen.findByRole("heading", { level: 1, name: en.startTummyTime.title });
+    fireEvent.click(screen.getByRole("button", { name: en.startTummyTime.start }));
+    fireEvent.click(screen.getByRole("button", { name: en.startTummyTime.stopSignedOut }));
+    expect(await screen.findByText(en.startTummyTime.tooShortSignedOut)).toBeDefined();
   });
 
   it("has one large Start control, a timer screen readers can query, and no axe violations", async () => {
@@ -83,6 +136,12 @@ describe("Start tummy time", () => {
     expect(
       await screen.findByText("Saved 5 minutes of tummy time. Every minute counts."),
     ).toBeDefined();
+    // The big clock keeps the time just timed, under "Last time", and the message sits right
+    // above the button, so the result is in sight without scrolling.
+    expect(screen.getByRole("timer").textContent).toContain("5 minutes");
+    expect(screen.getByText(en.startTummyTime.lastLabel)).toBeDefined();
+    const button = screen.getByRole("button", { name: en.startTummyTime.start });
+    expect(button.closest(".timer-panel")?.textContent).toContain("Saved 5 minutes");
     now.mockRestore();
     const sync = await startLogSync();
     expect(sync.getState().entries.map((e) => e.durationSeconds)).toEqual([300]);
@@ -115,7 +174,10 @@ describe("the log", () => {
     await addEntry(10, 300);
     const { container } = renderAt("/log");
     const today = await screen.findByRole("heading", { level: 2, name: en.log.today });
-    const days = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
+    const days = screen
+      .getAllByRole("heading", { level: 2 })
+      .map((h) => h.textContent)
+      .filter((text) => text !== en.week.title);
     expect(days[0]).toBe(en.log.today);
     expect(days).toHaveLength(2);
     const todayList = within(today.closest("section") ?? document.body).getAllByRole("listitem");

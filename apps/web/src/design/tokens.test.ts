@@ -1,20 +1,31 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { contrastRatio } from "./contrast";
 
 const css = readFileSync(join(import.meta.dirname, "tokens.css"), "utf8");
 
-/** Reads `--name: #rrggbb;` lines from tokens.css. */
-function colors(): Record<string, string> {
+/** The day theme is everything before the night block; the night block only overrides. */
+const NIGHT = "@media (prefers-color-scheme: dark)";
+const dayCss = css.slice(0, css.indexOf(NIGHT));
+const nightCss = css.slice(css.indexOf(NIGHT));
+
+function read(text: string): Record<string, string> {
   const found: Record<string, string> = {};
-  for (const m of css.matchAll(/(--color-[a-z-]+):\s*(#[0-9a-fA-F]{6})\s*;/g)) {
+  for (const m of text.matchAll(/(--color-[a-z-]+):\s*(#[0-9a-fA-F]{6})\s*;/g)) {
     const [, name, value] = m;
     if (name && value) {
       found[name] = value;
     }
   }
   return found;
+}
+
+let theme: "day" | "night" = "day";
+
+/** The colors of the theme under test: night takes the day colors it does not override. */
+function colors(): Record<string, string> {
+  return theme === "day" ? read(dayCss) : { ...read(dayCss), ...read(nightCss) };
 }
 
 function ratio(fg: string, bg: string): number {
@@ -44,15 +55,41 @@ const textPairs: [string, string][] = [
   ["--color-success", "--color-success-bg"],
   ["--color-on-primary", "--color-primary"],
   ["--color-on-accent", "--color-accent"],
+  ["--color-on-primary", "--color-primary-strong"],
+  ["--color-text", "--color-teal-soft"],
+  ["--color-text", "--color-sun-soft"],
+  ["--color-text", "--color-sage-soft"],
+  ["--color-text", "--color-lilac-soft"],
+  ["--color-text-muted", "--color-teal-soft"],
+  ["--color-text-muted", "--color-sun-soft"],
+  ["--color-text-muted", "--color-sage-soft"],
+  ["--color-text-muted", "--color-lilac-soft"],
+  ["--color-link", "--color-teal-soft"],
+  ["--color-link", "--color-sun-soft"],
+  ["--color-link", "--color-sage-soft"],
+  ["--color-link", "--color-lilac-soft"],
+  ["--color-primary", "--color-teal-soft"],
 ];
 
 // Lines and focus rings are not text, so WCAG asks for 3:1 against what is next to them.
 const lineBackgrounds = ["--color-bg", "--color-surface"];
 const lineColors = ["--color-border", "--color-focus", "--color-primary"];
 
-describe("design tokens: contrast", () => {
+describe.each(["day", "night"] as const)("design tokens: contrast, %s theme", (which) => {
+  beforeEach(() => {
+    theme = which;
+  });
+
   it("reads colors from tokens.css", () => {
     expect(Object.keys(colors()).length).toBeGreaterThan(10);
+  });
+
+  it("the night theme overrides every text and surface color", () => {
+    const night = read(nightCss);
+    for (const [fg, bg] of textPairs) {
+      expect(night[fg], fg).toBeDefined();
+      expect(night[bg], bg).toBeDefined();
+    }
   });
 
   it.each(textPairs)("text %s on %s is at least 4.5:1", (fg, bg) => {

@@ -77,6 +77,7 @@ Fill in the two `POSTGRES_` lines, the two `DB_` passwords and `CODE_LOOKUP_SECR
 - How to run the database, back it up and restore it: [docs/runbook.md](docs/runbook.md).
 - Plans, decisions, the data map and the threat model are in `docs/` (see the table at the top of this page). Decisions are in `docs/adr/`.
 - A step-by-step account of how each block was built is in `docs/walkthrough/`.
+- A demo that runs with no server, on made-up sample data, is built with `pnpm build:demo` (`docs/demo.md`).
 
 ## Credit
 

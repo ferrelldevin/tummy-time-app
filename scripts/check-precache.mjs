@@ -28,7 +28,7 @@ function* files(dir) {
 }
 
 // 1. Every built file a screen can ask for is in the list, and every listed file exists.
-const cacheable = /\.(js|css|html|webmanifest|png|svg)$/;
+const cacheable = /\.(js|css|html|webmanifest|png|svg|woff2)$/;
 const workerFiles = /^(sw\.js|workbox-[\w-]+\.js)$/;
 const built = new Set();
 for (const path of files(distDir)) {

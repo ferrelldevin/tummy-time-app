@@ -5,13 +5,13 @@ import { axeViolations } from "./axe";
 import { doubleTextSize, sidewaysOverflow } from "./layout";
 
 const screens = [
-  // Start tummy time and the Log need sign-in (Blocks 4 and 6). Signed out, they show the
-  // Welcome screen. The signed-in screens are checked in log.spec.ts.
-  { path: "/start-tummy-time", title: "Welcome", draft: false },
+  // Signed out, Start tummy time is a timer that saves nothing (client demo round). The
+  // signed-in screen, which saves, is checked in log.spec.ts.
+  { path: "/start-tummy-time", title: "Start tummy time", draft: false },
   { path: "/baby-crying", title: "Baby crying? Try this", draft: true },
   { path: "/when-to-call", title: "When to call", draft: true },
   { path: "/lessons", title: "Lessons", draft: true },
-  { path: "/lessons/first-lesson", title: "First lesson (placeholder)", draft: true },
+  { path: "/lessons/why-tummy-time", title: "Why tummy time matters", draft: true },
   // The Log needs sign-in (Block 4). Signed out, it shows the Welcome screen. The signed-in Log
   // is checked in account.spec.ts.
   { path: "/log", title: "Welcome", draft: false },
@@ -36,9 +36,12 @@ for (const { path, title, draft } of screens) {
 
 test("Home action buttons lead to their screens", async ({ page }) => {
   await page.goto("/");
-  // Signed out, Start tummy time asks the person to sign in first (Block 6).
+  // Signed out, Start tummy time opens the timer, not a sign-in wall. It saves nothing.
   await page.getByRole("link", { name: "Start tummy time" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Welcome" })).toBeFocused();
+  await expect(page.getByRole("heading", { level: 1, name: "Start tummy time" })).toBeFocused();
+  await expect(
+    page.getByText("You are not signed in, so this time will not be saved."),
+  ).toBeVisible();
   await page.goBack();
   await page.getByRole("link", { name: "Baby crying? Try this" }).click();
   await expect(
@@ -52,7 +55,7 @@ for (const path of [
   "/baby-crying",
   "/when-to-call",
   "/lessons",
-  "/lessons/first-lesson",
+  "/lessons/why-tummy-time",
   "/log",
 ]) {
   test(`${path} holds at 320 px wide with no sideways scroll`, async ({ page }) => {
@@ -67,7 +70,7 @@ for (const path of [
 
 test("every link and button is at least 44 by 44 px", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 640 });
-  for (const path of ["/", "/when-to-call", "/lessons", "/lessons/first-lesson"]) {
+  for (const path of ["/", "/when-to-call", "/lessons", "/lessons/why-tummy-time"]) {
     await page.goto(path);
     const targets = page.locator("a:visible, button:visible");
     const count = await targets.count();
@@ -106,7 +109,7 @@ test("the lessons list shows exactly the files in content/lessons", async ({ pag
     .map((f) => /^title:\s*(.+)$/m.exec(readFileSync(resolve(dir, f), "utf8"))?.[1]?.trim());
   expect(titles.length).toBeGreaterThan(0);
   await page.goto("/lessons");
-  const links = page.locator("ul.lesson-list a");
+  const links = page.locator(".lesson-rows a .lesson-row__title");
   await expect(links).toHaveCount(titles.length);
   expect((await links.allInnerTexts()).sort()).toEqual([...titles].sort());
 });
@@ -114,7 +117,7 @@ test("the lessons list shows exactly the files in content/lessons", async ({ pag
 test("the emergency line shows on When to call and the screen opens in one tap from a lesson", async ({
   page,
 }) => {
-  await page.goto("/lessons/first-lesson");
+  await page.goto("/lessons/why-tummy-time");
   await page.getByRole("navigation").getByRole("link", { name: "When to call" }).click();
   await expect(page.getByTestId("emergency-line")).toHaveText(
     "Trouble breathing or turning blue: call 911.",

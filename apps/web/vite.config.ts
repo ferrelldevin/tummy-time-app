@@ -15,14 +15,22 @@ export default defineConfig(({ mode, isPreview }) => {
   // SITE_BANNER=test shows "Test site. Sample data." on every screen (src/components/SiteBanner.tsx).
   // Read when the app is BUILT, never at run time, and off by default. Any other value stops the
   // build, so a typo cannot quietly leave the banner off on a test site.
-  const siteBanner = (process.env.SITE_BANNER ?? env.SITE_BANNER ?? "").trim().toLowerCase();
+  // DEMO=1 makes the client demo (docs/demo.md): a pretend API inside the browser, sample data,
+  // screen addresses after a #, no service worker, relative file paths, so any static host can
+  // serve dist-demo/. It always shows the test-site banner.
+  const demo = process.env.DEMO === "1";
+  const siteBanner = demo
+    ? "test"
+    : (process.env.SITE_BANNER ?? env.SITE_BANNER ?? "").trim().toLowerCase();
   if (siteBanner !== "" && siteBanner !== "test") {
     throw new Error('SITE_BANNER must be empty or "test".');
   }
   const proxy = { "/api": { target: apiTarget, changeOrigin: false } };
 
   return {
-    define: { __SITE_BANNER__: JSON.stringify(siteBanner) },
+    define: { __SITE_BANNER__: JSON.stringify(siteBanner), __DEMO__: JSON.stringify(demo) },
+    base: demo ? "./" : "/",
+    ...(demo ? { build: { outDir: "dist-demo" } } : {}),
     plugins: [
       react(),
       // Writes the build's label into index.html (<meta name="tummy-build">), so a person or a
@@ -37,34 +45,38 @@ export default defineConfig(({ mode, isPreview }) => {
       // - "prompt": a new version waits until src/update/ lets it in (a button, or a safe
       //   moment). It never takes over by itself, so it can never reload under a running timer.
       // scripts/check-precache.mjs checks the built worker against these rules.
-      VitePWA({
-        strategies: "generateSW",
-        registerType: "prompt",
-        // We register the worker ourselves (src/update/service-worker.ts), not with the plugin's
-        // helper: we need to tell a fresh start from a later update and check, at the last
-        // moment before a reload, that no timer is running.
-        injectRegister: false,
-        // The manifest is our own file, public/manifest.webmanifest, kept in step with the
-        // design tokens by src/install/manifest.test.ts.
-        manifest: false,
-        // Never in the dev server: the style guide and hot reload live there.
-        devOptions: { enabled: false },
-        workbox: {
-          globPatterns: ["**/*.{js,css,html,webmanifest,png,svg}"],
-          // Any screen opened with no signal gets the cached page; the app then routes it.
-          navigateFallback: "/index.html",
-          navigateFallbackDenylist: [/^\/api\//],
-          runtimeCaching: [],
-          cleanupOutdatedCaches: true,
-          // On the very first install there is no older version to mix with, so the worker
-          // takes charge of the open page at once and later lazy files come from the cache.
-          clientsClaim: true,
-          skipWaiting: false,
-          // The lesson files are the largest; this keeps a mistake (a huge file) from being
-          // skipped silently: the build would then miss a screen offline.
-          maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
-        },
-      }),
+      ...(demo
+        ? []
+        : [
+            VitePWA({
+              strategies: "generateSW",
+              registerType: "prompt",
+              // We register the worker ourselves (src/update/service-worker.ts), not with the plugin's
+              // helper: we need to tell a fresh start from a later update and check, at the last
+              // moment before a reload, that no timer is running.
+              injectRegister: false,
+              // The manifest is our own file, public/manifest.webmanifest, kept in step with the
+              // design tokens by src/install/manifest.test.ts.
+              manifest: false,
+              // Never in the dev server: the style guide and hot reload live there.
+              devOptions: { enabled: false },
+              workbox: {
+                globPatterns: ["**/*.{js,css,html,webmanifest,png,svg,woff2}"],
+                // Any screen opened with no signal gets the cached page; the app then routes it.
+                navigateFallback: "/index.html",
+                navigateFallbackDenylist: [/^\/api\//],
+                runtimeCaching: [],
+                cleanupOutdatedCaches: true,
+                // On the very first install there is no older version to mix with, so the worker
+                // takes charge of the open page at once and later lazy files come from the cache.
+                clientsClaim: true,
+                skipWaiting: false,
+                // The lesson files are the largest; this keeps a mistake (a huge file) from being
+                // skipped silently: the build would then miss a screen offline.
+                maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
+              },
+            }),
+          ]),
       // Browser tests only (playwright.config.ts sets E2E_NEXT_BUILD_DIR): lets one test's
       // browser see a second build, to test the update flow. Never in production (nginx).
       ...(process.env.E2E_NEXT_BUILD_DIR ? [nextBuildPreview(process.env.E2E_NEXT_BUILD_DIR)] : []),

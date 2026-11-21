@@ -16,6 +16,9 @@ const base: Lesson = {
   body: "Sample body text.",
   steps: [{ text: "Sample step one." }, { text: "Sample step two." }],
   pathways: [],
+  checks: [],
+  order: 1,
+  minutes: 2,
   status: "placeholder",
 };
 const approved: Lesson = {
@@ -30,17 +33,17 @@ const wrap = (node: React.ReactNode) => render(<MemoryRouter>{node}</MemoryRoute
 describe("Lessons list", () => {
   it("links each lesson by its title", () => {
     wrap(<Lessons lessons={[base, { ...approved, id: "other", title: "Other lesson" }]} />);
-    expect(screen.getByRole("link", { name: "Sample lesson" }).getAttribute("href")).toBe(
+    expect(screen.getByRole("link", { name: /^Sample lesson/ }).getAttribute("href")).toBe(
       "/lessons/sample",
     );
-    expect(screen.getByRole("link", { name: "Other lesson" }).getAttribute("href")).toBe(
+    expect(screen.getByRole("link", { name: /^Other lesson/ }).getAttribute("href")).toBe(
       "/lessons/other",
     );
   });
 
   it("marks only the drafts", () => {
     wrap(<Lessons lessons={[base, { ...approved, id: "other", title: "Other lesson" }]} />);
-    expect(screen.getAllByText(en.draftLabel)).toHaveLength(1);
+    expect(screen.getAllByText(en.lessons.draftTag)).toHaveLength(1);
   });
 
   it("shows an empty state with no lessons", () => {

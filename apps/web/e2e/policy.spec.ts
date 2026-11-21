@@ -90,7 +90,7 @@ test("no screen breaks the policy, signed out or signed in", async ({ page }) =>
     ["/when-to-call", "When to call"],
     ["/baby-crying", "Baby crying? Try this"],
     ["/lessons", "Lessons"],
-    ["/lessons/first-lesson", "First lesson (placeholder)"],
+    ["/lessons/why-tummy-time", "Why tummy time matters"],
     ["/add-to-home-screen", "Add to your home screen"],
     ["/welcome", "Welcome"],
     ["/sign-in", "Sign in"],

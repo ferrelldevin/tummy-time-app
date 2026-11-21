@@ -1,0 +1,208 @@
+import { FAMILY_CODE_ALPHABET } from "@tummy/shared";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  DEMO_FAMILY_CODE,
+  DEMO_PIN,
+  handle,
+  loadState,
+  refreshSampleWeek,
+  resetDemoServer,
+} from "./demo-server";
+import type { DemoState } from "./demo-server";
+import { sampleWeek } from "./sample-data";
+
+const base = "https://demo.invalid";
+async function call(method: string, path: string, body?: unknown) {
+  const init = body === undefined ? undefined : { body: JSON.stringify(body) };
+  const res = handle(method, new URL(path, base), init);
+  return { status: res.status, body: (await res.json()) as Record<string, unknown> };
+}
+
+describe("demo server", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    resetDemoServer();
+  });
+
+  it("is signed out at the start, and the sample family can sign in and read its week", async () => {
+    expect((await call("GET", "/api/me")).status).toBe(401);
+    const signIn = await call("POST", "/api/auth/sign-in/finish", {
+      familyCode: "demq 2345 test",
+      pin: DEMO_PIN,
+    });
+    expect(signIn.body).toEqual({ signedIn: true });
+    const logs = await call("GET", "/api/logs?since=0");
+    expect((logs.body.entries as unknown[]).length).toBeGreaterThan(5);
+    expect(DEMO_FAMILY_CODE).toHaveLength(12);
+  });
+
+  it("refuses a wrong PIN", async () => {
+    const res = await call("POST", "/api/auth/sign-in/finish", {
+      familyCode: DEMO_FAMILY_CODE,
+      pin: "000000",
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it("draws family code letters evenly: a byte that would favor some letters is thrown away", async () => {
+    // 255 is past the largest multiple of the alphabet's length, so it must be redrawn. Without
+    // that, 255 % 31 would make the 8th letter likelier than the rest.
+    const draws = [255, 0];
+    const spy = vi.spyOn(crypto, "getRandomValues").mockImplementation(((a: Uint8Array) => {
+      a.fill(draws.shift() ?? 0);
+      return a;
+    }) as typeof crypto.getRandomValues);
+    const made = await call("POST", "/api/auth/sign-up/finish", { pin: "135792" });
+    spy.mockRestore();
+    expect(made.body.familyCode).toBe(FAMILY_CODE_ALPHABET.charAt(0).repeat(12));
+  });
+
+  it("creates an account with an empty log, saves and deletes a time with rising revs", async () => {
+    const made = await call("POST", "/api/auth/sign-up/finish", { pin: "135792" });
+    expect(made.body.familyCode).toMatch(/^[2-9A-HJKMNP-Z]{12}$/);
+    const id = "11111111-2222-4333-8444-555555555555";
+    const put = await call("PUT", `/api/logs/${id}`, {
+      startedAt: new Date().toISOString(),
+      durationSeconds: 300,
+    });
+    expect(put.body.rev).toBe(1);
+    const del = await call("DELETE", `/api/logs/${id}`);
+    expect(del.body.rev).toBe(2);
+    expect(del.body.deletedAt).not.toBeNull();
+    const pull = await call("GET", "/api/logs?since=1");
+    expect(pull.body).toMatchObject({ latestRev: 2, more: false });
+  });
+
+  it("forgets the signed-in family on sign out", async () => {
+    await call("POST", "/api/auth/sign-up/finish", { pin: "135792" });
+    await call("POST", "/api/auth/sign-out");
+    expect((await call("GET", "/api/me")).status).toBe(401);
+  });
+
+  it("answers latestRev the way the real API does: highest rev in the page, or since", async () => {
+    await call("POST", "/api/auth/sign-in/finish", { familyCode: DEMO_FAMILY_CODE, pin: DEMO_PIN });
+    const all = await call("GET", "/api/logs?since=0");
+    const revs = (all.body.entries as { rev: number }[]).map((e) => e.rev);
+    expect(all.body.latestRev).toBe(Math.max(...revs));
+    const none = await call("GET", `/api/logs?since=${String(Math.max(...revs) + 5)}`);
+    expect(none.body).toMatchObject({ entries: [], latestRev: Math.max(...revs) + 5 });
+  });
+
+  it("refuses what the real API refuses: a bad since, a bad ID, a start time out of range", async () => {
+    await call("POST", "/api/auth/sign-up/finish", { pin: "135792" });
+    expect((await call("GET", "/api/logs?since=abc")).status).toBe(400);
+    const now = new Date().toISOString();
+    const upper = "11111111-2222-4333-8444-55555555555A";
+    expect(
+      (await call("PUT", `/api/logs/${upper}`, { startedAt: now, durationSeconds: 60 })).status,
+    ).toBe(400);
+    const id = "11111111-2222-4333-8444-555555555555";
+    const old = new Date(Date.now() - 400 * 24 * 60 * 60 * 1000).toISOString();
+    expect(
+      (await call("PUT", `/api/logs/${id}`, { startedAt: old, durationSeconds: 60 })).status,
+    ).toBe(400);
+  });
+
+  it("moves the sample week forward on a later day, with new revs, and keeps added entries", () => {
+    const day1 = new Date(2026, 0, 10, 12);
+    const day4 = new Date(2026, 0, 13, 12);
+    const entries = sampleWeek(day1).map((e, i) => ({ ...e, rev: i + 1, deletedAt: null }));
+    const added = {
+      id: "11111111-2222-4333-8444-555555555555",
+      startedAt: day1.toISOString(),
+      durationSeconds: 60,
+      rev: entries.length + 1,
+      deletedAt: null,
+    };
+    const before: DemoState = {
+      accounts: {
+        [DEMO_FAMILY_CODE]: { pin: DEMO_PIN, rev: added.rev, entries: [...entries, added] },
+      },
+      session: null,
+      sampleDay: "2026-01-10",
+    };
+    const after = refreshSampleWeek(before, day4);
+    const account = after.accounts[DEMO_FAMILY_CODE];
+    expect(after.sampleDay).toBe("2026-01-13");
+    expect(account?.entries.find((e) => e.id === added.id)).toEqual(added);
+    const first = account?.entries.find((e) => e.id === entries[0]?.id);
+    expect(first?.startedAt).toBe(sampleWeek(day4)[0]?.startedAt);
+    expect(first?.rev).toBeGreaterThan(added.rev);
+    expect(account?.rev).toBe(added.rev + entries.length);
+    // Same day again: nothing moves.
+    expect(refreshSampleWeek(after, day4)).toBe(after);
+  });
+
+  it("leaves a sample entry the viewer changed where they put it", () => {
+    const day1 = new Date(2026, 0, 10, 12);
+    const day4 = new Date(2026, 0, 13, 12);
+    const [first, ...rest] = sampleWeek(day1).map((e, i) => ({
+      ...e,
+      rev: i + 1,
+      deletedAt: null,
+    }));
+    if (!first) throw new Error("the sample week is empty");
+    const entries = [first, ...rest];
+    const edited = { ...first, durationSeconds: 600, rev: entries.length + 1 };
+    const before: DemoState = {
+      accounts: {
+        [DEMO_FAMILY_CODE]: {
+          pin: DEMO_PIN,
+          rev: edited.rev,
+          entries: [edited, ...entries.slice(1)],
+        },
+      },
+      session: null,
+      sampleDay: "2026-01-10",
+    };
+    const account = refreshSampleWeek(before, day4).accounts[DEMO_FAMILY_CODE];
+    expect(account?.entries.find((e) => e.id === edited.id)).toEqual(edited);
+    // The untouched ones still move.
+    expect(account?.entries.find((e) => e.id === entries[1]?.id)?.startedAt).toBe(
+      sampleWeek(day4)[1]?.startedAt,
+    );
+  });
+
+  it("moves the whole week when nothing matches the last layout (time zone changed, bad day)", () => {
+    const day1 = new Date(2026, 0, 10, 12);
+    const day4 = new Date(2026, 0, 13, 12);
+    // Laid out in another time zone: every stored time is five hours off what this phone computes.
+    const shifted = sampleWeek(day1).map((e, i) => ({
+      ...e,
+      startedAt: new Date(Date.parse(e.startedAt) + 5 * 3600_000).toISOString(),
+      rev: i + 1,
+      deletedAt: null,
+    }));
+    for (const sampleDay of ["2026-01-10", "2026-13-45"]) {
+      const before: DemoState = {
+        accounts: {
+          [DEMO_FAMILY_CODE]: { pin: DEMO_PIN, rev: shifted.length, entries: shifted },
+        },
+        session: null,
+        sampleDay,
+      };
+      const account = refreshSampleWeek(before, day4).accounts[DEMO_FAMILY_CODE];
+      expect(account?.entries.map((e) => e.startedAt)).toEqual(
+        sampleWeek(day4).map((e) => e.startedAt),
+      );
+    }
+  });
+
+  it("saves a moved sample week at once, so the same revs are never handed out twice", () => {
+    const day1 = new Date(2026, 0, 10, 12);
+    const entries = sampleWeek(day1).map((e, i) => ({ ...e, rev: i + 1, deletedAt: null }));
+    const old: DemoState = {
+      accounts: { [DEMO_FAMILY_CODE]: { pin: DEMO_PIN, rev: entries.length, entries } },
+      session: DEMO_FAMILY_CODE,
+      sampleDay: "2026-01-10",
+    };
+    localStorage.setItem("tummy-demo-server", JSON.stringify(old));
+    const day2 = loadState(new Date(2026, 0, 11, 12));
+    const saved = JSON.parse(localStorage.getItem("tummy-demo-server") ?? "{}") as DemoState;
+    expect(saved.sampleDay).toBe("2026-01-11");
+    expect(saved.accounts[DEMO_FAMILY_CODE]?.rev).toBe(day2.accounts[DEMO_FAMILY_CODE]?.rev);
+    // The next day starts from the saved revs, not from day 1's.
+    const day3 = loadState(new Date(2026, 0, 12, 12));
+    expect(day3.accounts[DEMO_FAMILY_CODE]?.rev).toBe(entries.length * 3);
+  });
+});

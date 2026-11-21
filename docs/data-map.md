@@ -72,6 +72,15 @@ A security record of account events.
 | IndexedDB | This account's tummy logs (the same fields as the server, plus a "could not be saved" mark), the outbox of unsent changes (which entry, save or delete, and its order in line), the last `rev` seen | Work offline, sync | Sign-out here or everywhere, account deletion, the server saying this phone is no longer signed in, and before a new sign-in or sign-up |
 | Cache storage | The app's own built files only: page, scripts (lessons and When to call are compiled into them), styles, manifest, icons. Never an answer from the API; a build check and a browser test enforce that | Open without signal | Replaced as a whole when the app updates. Kept on sign-out, because it holds no account data |
 
+### Proposed, waiting for Devin's OK (built in the client demo, not yet approved)
+
+| Where | What | Why | Cleared when |
+|---|---|---|---|
+| localStorage `tummy-plan` | "Getting started" answers as ranges only: baby's age range (for example "2 to 4 months"), how many weeks of pregnancy at birth as a range (for example "28 to 33 weeks", or "not sure"), up to three topic flags (spit-up, tubes or wires, head turns), "how is it going" (one of four choices); and the IDs of lessons marked done | Pick and order the lessons, show the corrected-age range | "Start over on this phone" on About, signing out (here or everywhere), deleting the account, or clearing the browser. Kept when a session ends on its own, because nobody chose that |
+| localStorage `tummy-demo-server` | Demo build only (`docs/demo.md`): the pretend server's accounts, PINs in plain text, sessions and logs, all made up | Lets the demo run with no server | "Reset the demo" on About, or clearing the browser. Never in the real build |
+
+Nothing in these rows is sent to the server. Quick-check answers are not stored at all. No birth date, no due date, no name.
+
 ## In logs
 
 Request method, path, status, duration, a random request ID. Never: PIN, family code, cookie, session token, request bodies, network address. Checked on a full run of the production stack in the Block 8 review (all four containers' logs read, test certificate for `localhost`): none of these appeared. Not yet checked on a real server, where Caddy's error lines may show a visitor's address.
@@ -100,6 +109,6 @@ Retention periods are proposals. The client and Dr. Gupta confirm them in Block 
 ## Not yet decided (each needs a row here before any code)
 
 - Email address, if the client chooses email sign-in. It would be stored apart from any study data.
-- Intake answers (baby's age range, weeks early range).
-- Lesson progress and quick-check answers.
+- Intake answers and lesson progress: proposed above, phone only. Moving them to the server (to follow the family across phones) needs new rows here.
+- Quick-check answers: not stored. Storing them would be study-like data and waits for the IRB.
 - Study consent and survey answers. Blocked until the IRB rules.

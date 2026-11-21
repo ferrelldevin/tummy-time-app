@@ -5,12 +5,25 @@ import type { Page } from "@playwright/test";
  *
  * The page scrolls inside .app-scroll (the bottom bar sits under that area, not on top of it),
  * so content that is too wide would scroll there and the document itself would not show it.
- * Both are measured and the larger is returned.
+ * Both are measured, along with any box that sticks out past the screen edge, and the largest
+ * is returned.
  */
 export function sidewaysOverflow(page: Page): Promise<number> {
   return page.evaluate(() => {
     const areas = [document.documentElement, ...document.querySelectorAll(".app-scroll")];
-    return Math.max(...areas.map((el) => el.scrollWidth - el.clientWidth));
+    const scroll = Math.max(...areas.map((el) => el.scrollWidth - el.clientWidth));
+    // A box can also stick out past the screen edge inside a card that clips it, which scrolls
+    // nothing but cuts off what is there. Measure every box that takes up space.
+    const width = document.documentElement.clientWidth;
+    let stickOut = 0;
+    for (const el of document.body.querySelectorAll("*")) {
+      // Shapes inside a drawing are clipped by the drawing's own box; measure the <svg> itself.
+      if (el.parentElement?.closest("svg")) continue;
+      const box = el.getBoundingClientRect();
+      if (box.width === 0 || box.height === 0) continue;
+      stickOut = Math.max(stickOut, Math.round(box.right - width), Math.round(-box.left));
+    }
+    return Math.max(scroll, stickOut);
   });
 }
 

@@ -1,10 +1,11 @@
 import { useEffect, useRef } from "react";
-import { Outlet, useLocation } from "react-router";
+import { Link as RouterLink, Outlet, useLocation } from "react-router";
 import { useSession } from "../session";
 import { en } from "../strings/en";
 import { Link } from "./Link";
 import { useOnline } from "../useOnline";
 import { BottomBar } from "./BottomBar";
+import { BrandMark } from "./BrandMark";
 import { NavigatedContext } from "./Page";
 import { SiteBanner } from "./SiteBanner";
 import { SkipLink } from "./SkipLink";
@@ -41,7 +42,10 @@ export function AppShell() {
             control can end up partly hidden under the bar (WCAG 2.4.11, 2.5.8). */}
         <div className="app-scroll">
           <header className="app-header">
-            <span>{en.appName}</span>
+            <RouterLink to="/" className="brand">
+              <BrandMark />
+              <span className="brand__name">{en.appName}</span>
+            </RouterLink>
             {status === "signedIn" ? (
               <Link to="/account" className="app-header__link">
                 {en.account.headerAccount}

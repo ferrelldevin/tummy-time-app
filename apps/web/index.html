@@ -10,6 +10,8 @@
     <!-- Install (Block 7). theme-color is --color-primary in src/design/tokens.css;
          src/install/manifest.test.ts keeps the two in step. -->
     <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- Night theme (tokens.css dark block): --color-bg. Listed first, so it wins in dark mode. -->
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f181b" />
     <meta name="theme-color" content="#0a5a6a" />
     <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
     <!-- iPhone and iPad: Safari reads these when the page is added to the home screen. -->

@@ -70,7 +70,7 @@ test("keyboard only: Home, then When to call, then back", async ({ page }) => {
 test("When to call is in the bottom bar on every screen", async ({ page }) => {
   for (const path of ["/", "/start-tummy-time", "/baby-crying", "/lessons", "/log"]) {
     await page.goto(path);
-    await page.getByRole("link", { name: "When to call" }).click();
+    await page.getByRole("navigation").getByRole("link", { name: "When to call" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "When to call" })).toBeVisible();
   }
 });

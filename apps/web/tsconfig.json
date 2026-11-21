@@ -12,5 +12,13 @@
     // config loader asks for. Allowed only because nothing here is emitted by tsc.
     "allowImportingTsExtensions": true
   },
-  "include": ["src", "e2e", "tooling", "vite.config.ts", "playwright.config.ts"]
+  "include": [
+    "src",
+    "e2e",
+    "e2e-demo",
+    "tooling",
+    "vite.config.ts",
+    "playwright.config.ts",
+    "playwright.demo.config.ts"
+  ]
 }

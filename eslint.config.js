@@ -10,6 +10,7 @@ export default tseslint.config(
       "**/node_modules/**",
       "**/dist/**",
       "**/dist-e2e-next/**",
+      "**/dist-demo/**",
       "**/coverage/**",
       "**/playwright-report/**",
       "**/test-results/**",

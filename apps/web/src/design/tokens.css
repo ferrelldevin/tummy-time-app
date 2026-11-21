@@ -1,17 +1,25 @@
 /*
  * Design tokens: the one place for colors, type, spacing and radius.
- * Light theme only for now. Contrast of every text pair is checked in tokens.test.ts,
- * which reads this file. If you change a color, that test tells you if the pair still passes.
+ * Two themes: day (below) and night (the dark block after it), which follows the phone's own
+ * dark mode setting. Parents use this app at 3 AM; a bright white screen in a dark nursery is
+ * hard on them and wakes the baby. Contrast of every text pair, in both themes, is checked in
+ * tokens.test.ts, which reads this file. If you change a color, that test tells you if the pair still passes.
  * Rule: write colors as 6-digit hex values so the test can read them.
  * Sizes use rem so text grows with the user's own font setting. Body text is never below 1rem.
  */
 :root {
-  /* Color: surfaces */
-  --color-bg: #fbf9f6;
+  color-scheme: light;
+  /* Color: surfaces. A cool, slightly green neutral, so the soft tints below read as calm. */
+  --color-bg: #f5f6f3;
   --color-surface: #ffffff;
   --color-info-bg: #e6f1f4;
   --color-success-bg: #e6f3e8;
   --color-danger-bg: #fdecec;
+  /* Soft tints for cards and illustrations. Text on them is --color-text. */
+  --color-teal-soft: #dcefee;
+  --color-sun-soft: #fdecd6;
+  --color-sage-soft: #e3efe0;
+  --color-lilac-soft: #ebe7f5;
 
   /* Color: text */
   --color-text: #1c2b33;
@@ -22,23 +30,39 @@
 
   /* Color: actions */
   --color-primary: #0a5a6a;
+  --color-primary-strong: #07434f;
   --color-on-primary: #ffffff;
   --color-accent: #9b1c1c;
   --color-on-accent: #ffffff;
 
   /* Color: lines and focus (non-text, need 3:1) */
   --color-border: #5b6b75;
+  --color-hairline: #d5dcdc;
   --color-focus: #1d4ed8;
 
-  /* Type scale (rem). Body is 1rem, the 16 px minimum. */
-  --font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-size-body: 1rem;
-  --font-size-lead: 1.125rem;
+  /* Color: illustrations (decorative only, never carry meaning) */
+  --color-ill-skin-1: #8d5524;
+  --color-ill-skin-2: #c68642;
+  --color-ill-skin-3: #f1c27d;
+  --color-ill-hair: #2f2219;
+  --color-ill-mat: #f6b78c;
+  --color-ill-cloth: #7fb7b2;
+  --color-ill-cloth-2: #b9a6e0;
+
+  /* Type. Atkinson Hyperlegible Next was drawn by the Braille Institute for readers with low
+     vision. It ships with the app (design/fonts), never from another server. */
+  --font-family:
+    "Atkinson Hyperlegible Next", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  --font-size-small: 1rem;
+  --font-size-body: 1.0625rem;
+  --font-size-lead: 1.1875rem;
   --font-size-h3: 1.25rem;
   --font-size-h2: 1.5rem;
-  --font-size-h1: 1.875rem;
-  --line-height-body: 1.5;
-  --line-height-heading: 1.25;
+  --font-size-h1: 2rem;
+  --font-size-display: 2.5rem;
+  --line-height-body: 1.55;
+  --line-height-heading: 1.2;
 
   /* Spacing (rem) */
   --space-1: 0.25rem;
@@ -47,11 +71,87 @@
   --space-4: 1rem;
   --space-5: 1.5rem;
   --space-6: 2rem;
+  --space-7: 3rem;
 
-  /* Radius and sizes */
-  --radius-1: 0.5rem;
-  --radius-2: 0.75rem;
-  --target-min: 2.75rem; /* 44 px at the default font size */
+  /* Radius, depth and sizes */
+  --radius-1: 0.75rem;
+  --radius-2: 1.25rem;
+  --radius-pill: 999rem;
+  --shadow-1: 0 1px 2px rgb(16 42 51 / 8%), 0 2px 8px rgb(16 42 51 / 6%);
+  --shadow-2: 0 2px 4px rgb(16 42 51 / 8%), 0 10px 28px rgb(16 42 51 / 10%);
+  /* 45 px at the default font size: 1 px over the 44 px minimum, so a target that lands on a
+     fractional pixel position never measures 43.99 px. */
+  --target-min: 2.8125rem;
   --focus-width: 0.1875rem;
   --border-width: 0.125rem;
+
+  /* Motion. Every animation is wrapped in prefers-reduced-motion: no-preference. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-1: 160ms;
+  --duration-2: 320ms;
+}
+
+/*
+ * Night theme. Only colors change, never sizes. Same token names, so every component follows.
+ * Surfaces are a deep blue-green, not black, and text is off-white, which is easier on eyes that
+ * have adjusted to the dark. tokens.test.ts checks every pair here as well.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --color-bg: #0f181b;
+    --color-surface: #172327;
+    --color-info-bg: #122f38;
+    --color-success-bg: #14301d;
+    --color-danger-bg: #3b1818;
+    --color-teal-soft: #16373a;
+    --color-sun-soft: #3a2d18;
+    --color-sage-soft: #1e3420;
+    --color-lilac-soft: #2b2642;
+
+    --color-text: #e9eff0;
+    --color-text-muted: #aebdc2;
+    --color-link: #7fd3de;
+    --color-danger: #ffa4a4;
+    --color-success: #94dba6;
+
+    --color-primary: #6fc8d3;
+    --color-primary-strong: #97dde6;
+    --color-on-primary: #06272d;
+    --color-accent: #b42828;
+    --color-on-accent: #ffffff;
+
+    --color-border: #7d9097;
+    --color-hairline: #2c3b40;
+    --color-focus: #8fb6ff;
+
+    --color-ill-mat: #c98f6b;
+    --color-ill-cloth: #5f9893;
+    --color-ill-cloth-2: #8f7fbf;
+
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 40%), 0 2px 8px rgb(0 0 0 / 30%);
+    --shadow-2: 0 2px 4px rgb(0 0 0 / 40%), 0 10px 28px rgb(0 0 0 / 45%);
+  }
+}
+
+@font-face {
+  font-family: "Atkinson Hyperlegible Next";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./fonts/atkinson-hyperlegible-next-latin-400-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible Next";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("./fonts/atkinson-hyperlegible-next-latin-700-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible Next";
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("./fonts/atkinson-hyperlegible-next-latin-800-normal.woff2") format("woff2");
 }
