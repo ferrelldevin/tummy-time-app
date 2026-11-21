@@ -96,7 +96,7 @@ describe("Start tummy time", () => {
     const retry = screen.getByRole("button", { name: en.states.tryAgain });
     fireEvent.click(retry);
     // One check at a time.
-    expect((retry as HTMLButtonElement).disabled).toBe(true);
+    expect(retry.getAttribute("aria-disabled")).toBe("true");
     await screen.findByText(en.log.sync.saved);
     expect(screen.getByRole("button", { name: en.startTummyTime.stop })).toBeDefined();
   });

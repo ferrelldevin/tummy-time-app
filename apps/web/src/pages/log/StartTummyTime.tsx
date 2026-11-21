@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useState, useSyncExternalStore } from "react";
 import { LOG_MAX_DURATION_SECONDS, LOG_MIN_DURATION_SECONDS } from "@tummy/shared";
 import { Alert } from "../../components/Alert";
 import { Button } from "../../components/Button";
@@ -22,17 +22,12 @@ const t = en.startTummyTime;
 function useTimerView() {
   const { startedAtMs } = useSyncExternalStore(timer.subscribe, timer.get);
   const [now, setNow] = useState(() => Date.now());
+  // Set by the screen from the stop itself, so the clock and the sentence use the same length.
+  // A stop made somewhere else (signing out) leaves it empty, and the clock shows 0:00.
   const [last, setLast] = useState<number | null>(null);
-  const previousStart = useRef(startedAtMs);
 
   useEffect(() => {
-    const before = previousStart.current;
-    previousStart.current = startedAtMs;
-    if (startedAtMs === null) {
-      if (before !== null) setLast(elapsedSeconds(before, Date.now()));
-      return;
-    }
-    setLast(null);
+    if (startedAtMs === null) return;
     setNow(Date.now());
     // Only redraws the screen. The time itself is always worked out from the start time.
     const handle = setInterval(() => {
@@ -45,7 +40,7 @@ function useTimerView() {
 
   const running = startedAtMs !== null;
   const seconds = running ? elapsedSeconds(startedAtMs, now) : (last ?? 0);
-  return { running, seconds, stopped: !running && last !== null };
+  return { running, seconds, stopped: !running && last !== null, setLast };
 }
 
 /**
@@ -100,12 +95,13 @@ function TimerFace({
 /** Signed in: the time is saved to the log when the timer stops. */
 export function StartTummyTime() {
   const { state } = useLogSync();
-  const { running, seconds, stopped } = useTimerView();
+  const { running, seconds, stopped, setLast } = useTimerView();
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function toggle() {
     if (!running) {
+      setLast(null);
       timer.start(Date.now());
       setMessage(t.started);
       return;
@@ -113,6 +109,7 @@ export function StartTummyTime() {
     const done = timer.stop(Date.now());
     if (done === null) return;
     const total = Math.floor(done.elapsedMs / 1000);
+    setLast(total);
     if (total < LOG_MIN_DURATION_SECONDS) {
       setMessage(t.tooShort);
       return;
@@ -174,6 +171,7 @@ export function TryTummyTime() {
   // One check at a time: on a slow line a tired person may tap Try again more than once.
   const [checking, setChecking] = useState(false);
   async function checkAgain() {
+    if (checking) return;
     setChecking(true);
     try {
       await refresh();
@@ -181,11 +179,12 @@ export function TryTummyTime() {
       setChecking(false);
     }
   }
-  const { running, seconds, stopped } = useTimerView();
+  const { running, seconds, stopped, setLast } = useTimerView();
   const [message, setMessage] = useState("");
 
   function toggle() {
     if (!running) {
+      setLast(null);
       timer.start(Date.now());
       setMessage(t.started);
       return;
@@ -193,6 +192,7 @@ export function TryTummyTime() {
     const done = timer.stop(Date.now());
     if (done === null) return;
     const total = Math.floor(done.elapsedMs / 1000);
+    setLast(total);
     setMessage(
       total < LOG_MIN_DURATION_SECONDS
         ? t.tooShortSignedOut
@@ -204,7 +204,13 @@ export function TryTummyTime() {
     <Page title={t.title}>
       <Alert kind="info">{checkFailed ? t.checkFailed : t.notSignedIn}</Alert>
       {checkFailed ? (
-        <Button variant="secondary" block disabled={checking} onClick={() => void checkAgain()}>
+        <Button
+          variant="secondary"
+          block
+          // aria-disabled, not disabled: a disabled button drops keyboard focus to the page.
+          aria-disabled={checking}
+          onClick={() => void checkAgain()}
+        >
           {checking ? en.states.loading : en.states.tryAgain}
         </Button>
       ) : null}
