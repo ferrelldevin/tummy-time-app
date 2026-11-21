@@ -46,10 +46,18 @@ function localDay(d: Date): string {
   return `${String(d.getFullYear())}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+/** Noon on a "YYYY-MM-DD" local day, the inverse of localDay for laying out the sample week. */
+function dayAt(day: string): Date | null {
+  const [y, m, d] = day.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d, 12);
+}
+
 /**
  * Keeps the sample week ending yesterday when someone comes back on a later day: each sample
  * entry that is still there is moved to its new time and given a new rev, so a phone that
- * already synced it pulls the change like any other edit. Entries a viewer added stay as they are.
+ * already synced it pulls the change like any other edit. Entries a viewer added, and sample
+ * entries a viewer changed, stay as they are.
  */
 export function refreshSampleWeek(s: DemoState, now: Date): DemoState {
   const today = localDay(now);
@@ -58,9 +66,18 @@ export function refreshSampleWeek(s: DemoState, now: Date): DemoState {
   if (!account) return { ...s, sampleDay: today };
   let rev = account.rev;
   const fresh = new Map(sampleWeek(now).map((e) => [e.id, e]));
+  // Where the sample week was laid out last time, so an entry the viewer edited is left alone.
+  const before = s.sampleDay ? dayAt(s.sampleDay) : null;
+  const laidOut = new Map((before ? sampleWeek(before) : []).map((e) => [e.id, e]));
   const entries = account.entries.map((e) => {
     const moved = fresh.get(e.id);
     if (!moved || e.deletedAt !== null) return e;
+    const was = laidOut.get(e.id);
+    // No record of the last layout (a demo saved before sampleDay existed): move it as before.
+    const untouched =
+      before === null ||
+      (was?.startedAt === e.startedAt && was.durationSeconds === e.durationSeconds);
+    if (!untouched) return e;
     rev += 1;
     return { ...e, startedAt: moved.startedAt, rev };
   });

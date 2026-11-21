@@ -133,6 +133,36 @@ describe("demo server", () => {
     expect(refreshSampleWeek(after, day4)).toBe(after);
   });
 
+  it("leaves a sample entry the viewer changed where they put it", () => {
+    const day1 = new Date(2026, 0, 10, 12);
+    const day4 = new Date(2026, 0, 13, 12);
+    const [first, ...rest] = sampleWeek(day1).map((e, i) => ({
+      ...e,
+      rev: i + 1,
+      deletedAt: null,
+    }));
+    if (!first) throw new Error("the sample week is empty");
+    const entries = [first, ...rest];
+    const edited = { ...first, durationSeconds: 600, rev: entries.length + 1 };
+    const before: DemoState = {
+      accounts: {
+        [DEMO_FAMILY_CODE]: {
+          pin: DEMO_PIN,
+          rev: edited.rev,
+          entries: [edited, ...entries.slice(1)],
+        },
+      },
+      session: null,
+      sampleDay: "2026-01-10",
+    };
+    const account = refreshSampleWeek(before, day4).accounts[DEMO_FAMILY_CODE];
+    expect(account?.entries.find((e) => e.id === edited.id)).toEqual(edited);
+    // The untouched ones still move.
+    expect(account?.entries.find((e) => e.id === entries[1]?.id)?.startedAt).toBe(
+      sampleWeek(day4)[1]?.startedAt,
+    );
+  });
+
   it("saves a moved sample week at once, so the same revs are never handed out twice", () => {
     const day1 = new Date(2026, 0, 10, 12);
     const entries = sampleWeek(day1).map((e, i) => ({ ...e, rev: i + 1, deletedAt: null }));
