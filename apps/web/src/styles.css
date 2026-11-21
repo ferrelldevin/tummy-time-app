@@ -1108,7 +1108,8 @@ h2 {
 .check {
   margin: 0;
   /* Padding gives way on a small phone at 200% text, so the answers keep room for words.
-     On a normal phone at normal size, 5% is more than --space-4 and nothing changes. */
+     On a phone 384 px or wider at normal size, 5% is more than --space-4 and nothing changes;
+     narrower ones lose a pixel or so a side. The same goes for the answer and choice boxes. */
   padding: min(var(--space-4), 5%);
   border: 0;
   border-radius: var(--radius-2);
