@@ -1,5 +1,6 @@
 import { useEffect, useId, useState, useSyncExternalStore } from "react";
 import { LOG_MAX_DURATION_SECONDS, LOG_MIN_DURATION_SECONDS } from "@tummy/shared";
+import { Alert } from "../../components/Alert";
 import { Button } from "../../components/Button";
 import { Link } from "../../components/Link";
 import { Page } from "../../components/Page";
@@ -12,18 +13,10 @@ import { SyncStatusLine } from "./SyncStatusLine";
 
 const t = en.startTummyTime;
 
-/**
- * One large Start / Stop and save control and the running time. The time is a role="timer"
- * region with aria-live="off": a screen reader can read it at any moment, but is not
- * interrupted every second. Starting and saving are each announced once, politely.
- */
-export function StartTummyTime() {
-  const { state } = useLogSync();
+/** The running time, worked out from the start time and redrawn once a second. */
+function useTimerView() {
   const { startedAtMs } = useSyncExternalStore(timer.subscribe, timer.get);
   const [now, setNow] = useState(() => Date.now());
-  const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
-  const labelId = useId();
 
   useEffect(() => {
     if (startedAtMs === null) return;
@@ -38,9 +31,59 @@ export function StartTummyTime() {
   }, [startedAtMs]);
 
   const seconds = startedAtMs === null ? 0 : elapsedSeconds(startedAtMs, now);
+  return { running: startedAtMs !== null, seconds };
+}
+
+/**
+ * One large Start / Stop control and the running time. The time is a role="timer" region with
+ * aria-live="off": a screen reader can read it at any moment, but is not interrupted every
+ * second. The screens using it announce starting and stopping once, politely.
+ */
+function TimerFace({
+  seconds,
+  running,
+  busy,
+  stopLabel,
+  onToggle,
+}: {
+  seconds: number;
+  running: boolean;
+  busy: boolean;
+  stopLabel: string;
+  onToggle: () => void;
+}) {
+  const labelId = useId();
+  return (
+    <div className="timer-panel">
+      <p className="timer-panel__label" id={labelId}>
+        {t.timeLabel}
+      </p>
+      <div role="timer" aria-live="off" aria-labelledby={labelId} className="timer-panel__time">
+        <span aria-hidden="true">{clockText(seconds)}</span>
+        <span className="visually-hidden">{lengthText(seconds)}</span>
+      </div>
+      <Button
+        block
+        className="timer-panel__button"
+        variant={running ? "secondary" : "primary"}
+        disabled={busy}
+        onClick={onToggle}
+      >
+        {running ? stopLabel : t.start}
+      </Button>
+    </div>
+  );
+}
+
+/** Signed in: the time is saved to the log when the timer stops. */
+export function StartTummyTime() {
+  const { state } = useLogSync();
+  const { running, seconds } = useTimerView();
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
 
   async function toggle() {
-    if (startedAtMs === null) {
+    if (!running) {
       timer.start(Date.now());
       setMessage(t.started);
       return;
@@ -71,28 +114,16 @@ export function StartTummyTime() {
     }
   }
 
-  const running = startedAtMs !== null;
   return (
     <Page title={t.title}>
       <SyncStatusLine state={state} />
-      <div className="timer-panel">
-        <p className="timer-panel__label" id={labelId}>
-          {t.timeLabel}
-        </p>
-        <div role="timer" aria-live="off" aria-labelledby={labelId} className="timer-panel__time">
-          <span aria-hidden="true">{clockText(seconds)}</span>
-          <span className="visually-hidden">{lengthText(seconds)}</span>
-        </div>
-        <Button
-          block
-          className="timer-panel__button"
-          variant={running ? "secondary" : "primary"}
-          disabled={busy}
-          onClick={() => void toggle()}
-        >
-          {running ? t.stop : t.start}
-        </Button>
-      </div>
+      <TimerFace
+        seconds={seconds}
+        running={running}
+        busy={busy}
+        stopLabel={t.stop}
+        onToggle={() => void toggle()}
+      />
       <p role="status" className="timer-panel__message">
         {message}
       </p>
@@ -103,6 +134,51 @@ export function StartTummyTime() {
       ) : null}
       <Link to="/log" appearance="secondary" block>
         {t.seeLog}
+      </Link>
+    </Page>
+  );
+}
+
+/**
+ * Signed out: the same timer, so the first tap on Home's big button never hits a sign-in wall.
+ * Nothing is saved or stored: the timer lives in memory (src/log/timer.ts) and the time is only
+ * shown. It says so before the timer starts, and offers sign-in to keep a log.
+ */
+export function TryTummyTime() {
+  const { running, seconds } = useTimerView();
+  const [message, setMessage] = useState("");
+
+  function toggle() {
+    if (!running) {
+      timer.start(Date.now());
+      setMessage(t.started);
+      return;
+    }
+    const done = timer.stop(Date.now());
+    if (done === null) return;
+    const total = Math.floor(done.elapsedMs / 1000);
+    setMessage(
+      total < LOG_MIN_DURATION_SECONDS
+        ? t.tooShortSignedOut
+        : fill(t.doneNotSaved, { time: lengthText(total) }),
+    );
+  }
+
+  return (
+    <Page title={t.title}>
+      <Alert kind="info">{t.notSignedIn}</Alert>
+      <TimerFace
+        seconds={seconds}
+        running={running}
+        busy={false}
+        stopLabel={t.stopSignedOut}
+        onToggle={toggle}
+      />
+      <p role="status" className="timer-panel__message">
+        {message}
+      </p>
+      <Link to="/welcome" appearance="secondary" block>
+        {t.signInToSave}
       </Link>
     </Page>
   );

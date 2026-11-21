@@ -4,5 +4,5 @@
  */
 export { AddTime } from "./AddTime";
 export { LogPage } from "./LogPage";
-export { StartTummyTime } from "./StartTummyTime";
+export { StartTummyTime, TryTummyTime } from "./StartTummyTime";
 export { TodayCard } from "./TodayCard";

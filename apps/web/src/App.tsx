@@ -15,7 +15,7 @@ import { Home } from "./pages/Home";
 import { NotFound } from "./pages/NotFound";
 import { About } from "./pages/About";
 import { BabyCrying } from "./pages/BabyCrying";
-import { SessionProvider } from "./session";
+import { SessionProvider, useSession } from "./session";
 
 // The style guide exists only in development. In a production build this is `null`, the
 // dynamic import is removed, and scripts/check-no-styleguide.mjs proves it.
@@ -41,6 +41,10 @@ const GettingStarted = lazy(() =>
 const StartTummyTimeRoute = lazy(() =>
   import("./pages/log/LogRoutes").then((m) => ({ default: m.StartTummyTime })),
 );
+// Signed out, Start tummy time still works: the timer runs but saves nothing.
+const TryTummyTimeRoute = lazy(() =>
+  import("./pages/log/LogRoutes").then((m) => ({ default: m.TryTummyTime })),
+);
 const LogRoute = lazy(() => import("./pages/log/LogRoutes").then((m) => ({ default: m.LogPage })));
 const AddTimeRoute = lazy(() =>
   import("./pages/log/LogRoutes").then((m) => ({ default: m.AddTime })),
@@ -52,6 +56,13 @@ function SignedInLazy({ children }: { children: ReactNode }) {
       <Suspense fallback={<LoadingState />}>{children}</Suspense>
     </RequireSignIn>
   );
+}
+
+/** Like SignedInLazy, but a signed-out person gets `signedOut` instead of the Welcome screen. */
+function SignedInOr({ children, signedOut }: { children: ReactNode; signedOut: ReactNode }) {
+  const { status } = useSession();
+  if (status === "signedOut") return <Suspense fallback={<LoadingState />}>{signedOut}</Suspense>;
+  return <SignedInLazy>{children}</SignedInLazy>;
 }
 
 export function App() {
@@ -70,9 +81,9 @@ function AppRoutes() {
         <Route
           path="start-tummy-time"
           element={
-            <SignedInLazy>
+            <SignedInOr signedOut={<TryTummyTimeRoute />}>
               <StartTummyTimeRoute />
-            </SignedInLazy>
+            </SignedInOr>
           }
         />
         <Route path="baby-crying" element={<BabyCrying />} />

@@ -51,10 +51,38 @@ async function addEntry(minutesAgo: number, durationSeconds: number) {
 }
 
 describe("Start tummy time", () => {
-  it("needs sign-in", async () => {
+  // Home's big button must never lead to a sign-in wall. Signed out, the timer works and saves
+  // nothing: no log, no IndexedDB, no localStorage.
+  it("works signed out, says it saves nothing, offers sign-in, and has no axe violations", async () => {
+    stubApi({ signedIn: false });
+    const now = vi.spyOn(Date, "now");
+    now.mockReturnValue(1_800_000_000_000);
+    const { container } = renderAt("/start-tummy-time");
+    await screen.findByRole("heading", { level: 1, name: en.startTummyTime.title });
+    expect(screen.getByText(en.startTummyTime.notSignedIn)).toBeDefined();
+    expect(
+      screen.getByRole("link", { name: en.startTummyTime.signInToSave }).getAttribute("href"),
+    ).toBe("/welcome");
+    expect(await axeViolations(container)).toEqual([]);
+    fireEvent.click(screen.getByRole("button", { name: en.startTummyTime.start }));
+    expect(screen.getByText(en.startTummyTime.started).getAttribute("role")).toBe("status");
+    now.mockReturnValue(1_800_000_000_000 + 5 * 60_000 + 400);
+    fireEvent.click(screen.getByRole("button", { name: en.startTummyTime.stopSignedOut }));
+    expect(
+      await screen.findByText("That was 5 minutes of tummy time. Every minute counts."),
+    ).toBeDefined();
+    now.mockRestore();
+    expect(await databaseNames()).not.toContain(LOCAL_DB_NAME);
+    expect(localStorage.length).toBe(0);
+  });
+
+  it("signed out, a very short tap is not praised as tummy time", async () => {
     stubApi({ signedIn: false });
     renderAt("/start-tummy-time");
-    expect(await screen.findByRole("heading", { level: 1, name: en.account.welcome.title }));
+    await screen.findByRole("heading", { level: 1, name: en.startTummyTime.title });
+    fireEvent.click(screen.getByRole("button", { name: en.startTummyTime.start }));
+    fireEvent.click(screen.getByRole("button", { name: en.startTummyTime.stopSignedOut }));
+    expect(await screen.findByText(en.startTummyTime.tooShortSignedOut)).toBeDefined();
   });
 
   it("has one large Start control, a timer screen readers can query, and no axe violations", async () => {

@@ -70,6 +70,13 @@ export const en = {
     tooLong: "That was more than 2 hours, so we did not save it. You can add the time yourself.",
     addInstead: "Add a time yourself",
     seeLog: "See your log",
+    // Signed out: the timer works, but nothing is saved.
+    notSignedIn: "You are not signed in, so this time will not be saved.",
+    stopSignedOut: "Stop",
+    // {time} is a length such as "5 minutes". "Every minute counts." is from the style guide.
+    doneNotSaved: "That was {time} of tummy time. Every minute counts.",
+    tooShortSignedOut: "That was very short. Try again when your baby is ready.",
+    signInToSave: "Sign in to keep a log",
   },
   babyCrying: {
     title: "Baby crying? Try this",

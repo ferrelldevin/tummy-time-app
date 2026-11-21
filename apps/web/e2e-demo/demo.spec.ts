@@ -83,6 +83,15 @@ test("the whole demo click path works, passes axe on every screen, with no error
     "Trouble breathing or turning blue: call 911.",
   );
 
+  // Signed out, the big Start tummy time button opens a timer that saves nothing.
+  await nav(page).getByRole("link", { name: "Home" }).click();
+  await page.getByRole("link", { name: "Start tummy time" }).click();
+  await page.getByRole("button", { name: "Start" }).click();
+  await page.waitForTimeout(1200);
+  await page.getByRole("button", { name: "Stop", exact: true }).click();
+  await expect(page.getByText(/^That was .* of tummy time|^That was very short/)).toBeVisible();
+  await noViolations(page);
+
   // Sign in as the sample family; the log shows the made-up week; start and stop the timer.
   await nav(page).getByRole("link", { name: "Log" }).click();
   await page.getByRole("link", { name: "Sign in" }).first().click();

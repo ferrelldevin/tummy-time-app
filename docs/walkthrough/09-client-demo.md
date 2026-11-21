@@ -44,6 +44,8 @@ This chapter explains the demo built to show the client: how the same app runs w
 
 **A night theme, because of 3 AM.** Parents of babies born early use this app in a dark room, often at night. A white screen there is glaring and can wake the baby. The phone already knows whether its owner wants dark mode, so the app follows that setting with `@media (prefers-color-scheme: dark)`. Only the color tokens change; every component already uses tokens, so no component code changed. The contrast test now checks every text pair twice, once per theme, and fails if a night color is too faint.
 
+**The big button never hits a wall.** Home's first button is "Start tummy time". Before, a signed-out person tapped it and got the Welcome (sign-in) screen, the opposite of what the button says. Now the route checks the session: signed in, it opens the timer that saves to the log; signed out, it opens the same timer face, says up front that the time will not be saved, and offers "Sign in to keep a log". The timer was already memory only (`src/log/timer.ts`), so the signed-out version stores nothing new and needs no change to the data map. The shared parts (`useTimerView` and `TimerFace` in `StartTummyTime.tsx`) mean the two screens cannot drift apart.
+
 **Motion only when asked for.** All animation sits inside `@media (prefers-reduced-motion: no-preference)`. A phone set to reduce motion gets none. A browser test checks it.
 
 ## 3. The steps, in order
@@ -59,7 +61,8 @@ This chapter explains the demo built to show the client: how the same app runs w
 9. **New design tokens**: a softer palette, each color pair checked for contrast in `tokens.test.ts`; the Atkinson Hyperlegible Next font served from our own files (the rules forbid fonts from other servers).
 10. **Tests**: unit tests for every new screen with axe, and a new demo browser suite that taps the whole path on a 393 px and a 320 px phone, runs axe on every screen, checks 200% text causes no sideways scrolling, checks reduced motion, and fails on any console or security-policy error.
 11. **Fixed what the tests found**: cards that overflowed at 320 px (grid columns need `minmax(0, 1fr)`), a duplicate link name, a label that did not match its visible text, and a readability check that should skip the credits line.
-12. **Ran the whole gate** (lint, types, all unit tests, both browser suites, bundle size) and opened the draft pull request.
+12. **Walked the demo as a first-time viewer** and found the sign-in wall behind Home's big button. Split the timer screen into a shared face plus two wrappers (`StartTummyTime` saves, `TryTummyTime` does not), routed between them with `SignedInOr` in `App.tsx`, and changed the tests that expected Welcome on that address to expect the timer.
+13. **Ran the whole gate** (lint, types, all unit tests, both browser suites, bundle size) and opened the draft pull request.
 
 ## 4. Build it yourself
 

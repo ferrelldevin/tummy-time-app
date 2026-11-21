@@ -5,9 +5,9 @@ import { axeViolations } from "./axe";
 import { doubleTextSize, sidewaysOverflow } from "./layout";
 
 const screens = [
-  // Start tummy time and the Log need sign-in (Blocks 4 and 6). Signed out, they show the
-  // Welcome screen. The signed-in screens are checked in log.spec.ts.
-  { path: "/start-tummy-time", title: "Welcome", draft: false },
+  // Signed out, Start tummy time is a timer that saves nothing (client demo round). The
+  // signed-in screen, which saves, is checked in log.spec.ts.
+  { path: "/start-tummy-time", title: "Start tummy time", draft: false },
   { path: "/baby-crying", title: "Baby crying? Try this", draft: true },
   { path: "/when-to-call", title: "When to call", draft: true },
   { path: "/lessons", title: "Lessons", draft: true },
@@ -36,9 +36,12 @@ for (const { path, title, draft } of screens) {
 
 test("Home action buttons lead to their screens", async ({ page }) => {
   await page.goto("/");
-  // Signed out, Start tummy time asks the person to sign in first (Block 6).
+  // Signed out, Start tummy time opens the timer, not a sign-in wall. It saves nothing.
   await page.getByRole("link", { name: "Start tummy time" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Welcome" })).toBeFocused();
+  await expect(page.getByRole("heading", { level: 1, name: "Start tummy time" })).toBeFocused();
+  await expect(
+    page.getByText("You are not signed in, so this time will not be saved."),
+  ).toBeVisible();
   await page.goBack();
   await page.getByRole("link", { name: "Baby crying? Try this" }).click();
   await expect(
