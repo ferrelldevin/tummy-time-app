@@ -77,6 +77,7 @@ export function refreshSampleWeek(s: DemoState, now: Date): DemoState {
   };
   // If no live sample entry sits where the last layout says (a demo saved before sampleDay
   // existed, or the phone's time zone changed since), there is no usable record: move them all.
+  // A viewer who moved every single sample entry looks the same and loses those edits; fine for a demo.
   const known = account.entries.some(
     (e) => fresh.has(e.id) && e.deletedAt === null && matchesLayout(e),
   );
