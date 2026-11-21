@@ -80,13 +80,22 @@ describe("Start tummy time", () => {
 
   it("still works when the sign-in check fails, because the timer needs no server", async () => {
     stubApi({
+      signedIn: true,
       replies: {
         "GET /api/me": [{ status: 500, body: { error: { code: "internal", message: "Oops." } } }],
       },
     });
-    renderAt("/start-tummy-time");
+    const { container } = renderAt("/start-tummy-time");
     await screen.findByRole("heading", { level: 1, name: en.startTummyTime.title });
-    expect(screen.getByRole("button", { name: en.startTummyTime.start })).toBeDefined();
+    // It does not claim the person is signed out; it says the check failed and offers a retry.
+    expect(screen.getByText(en.startTummyTime.checkFailed)).toBeDefined();
+    expect(screen.queryByText(en.startTummyTime.notSignedIn)).toBeNull();
+    expect(await axeViolations(container)).toEqual([]);
+    fireEvent.click(screen.getByRole("button", { name: en.startTummyTime.start }));
+    // The retry passes (the stub answers signed in now): the same running timer can be saved.
+    fireEvent.click(screen.getByRole("button", { name: en.states.tryAgain }));
+    await screen.findByText(en.log.sync.saved);
+    expect(screen.getByRole("button", { name: en.startTummyTime.stop })).toBeDefined();
   });
 
   it("signed out, a very short tap is not praised as tummy time", async () => {

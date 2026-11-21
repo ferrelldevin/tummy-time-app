@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { FAMILY_CODE_ALPHABET } from "@tummy/shared";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DEMO_FAMILY_CODE,
   DEMO_PIN,
@@ -41,6 +42,19 @@ describe("demo server", () => {
       pin: "000000",
     });
     expect(res.status).toBe(401);
+  });
+
+  it("draws family code letters evenly: a byte that would favor some letters is thrown away", async () => {
+    // 255 is past the largest multiple of the alphabet's length, so it must be redrawn. Without
+    // that, 255 % 31 would make the 8th letter likelier than the rest.
+    const draws = [255, 0];
+    const spy = vi.spyOn(crypto, "getRandomValues").mockImplementation(((a: Uint8Array) => {
+      a.fill(draws.shift() ?? 0);
+      return a;
+    }) as typeof crypto.getRandomValues);
+    const made = await call("POST", "/api/auth/sign-up/finish", { pin: "135792" });
+    spy.mockRestore();
+    expect(made.body.familyCode).toBe(FAMILY_CODE_ALPHABET.charAt(0).repeat(12));
   });
 
   it("creates an account with an empty log, saves and deletes a time with rising revs", async () => {

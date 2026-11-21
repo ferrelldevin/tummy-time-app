@@ -124,10 +124,20 @@ function fail(code: string, status: number, message: string): Response {
   return json({ error: { code, message } }, status);
 }
 
+/**
+ * A made-up family code for the demo. Each character is drawn evenly: a random byte at or above
+ * the largest multiple of the alphabet's length is thrown away and drawn again, so `% length`
+ * makes no character likelier (the same thing Node's crypto.randomInt does for the real API).
+ */
 function newFamilyCode(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(FAMILY_CODE_LENGTH));
+  const n = FAMILY_CODE_ALPHABET.length;
+  const limit = 256 - (256 % n);
   let code = "";
-  for (const b of bytes) code += FAMILY_CODE_ALPHABET.charAt(b % FAMILY_CODE_ALPHABET.length);
+  while (code.length < FAMILY_CODE_LENGTH) {
+    for (const b of crypto.getRandomValues(new Uint8Array(FAMILY_CODE_LENGTH))) {
+      if (b < limit && code.length < FAMILY_CODE_LENGTH) code += FAMILY_CODE_ALPHABET.charAt(b % n);
+    }
+  }
   return code;
 }
 

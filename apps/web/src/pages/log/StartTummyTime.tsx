@@ -8,6 +8,7 @@ import { clockText, fill, lengthText } from "../../log/format";
 import { startLogSync } from "../../log/local-data";
 import { elapsedSeconds, timer } from "../../log/timer";
 import { useLogSync } from "../../log/useLogSync";
+import { useSession } from "../../session";
 import { en } from "../../strings/en";
 import { SyncStatusLine } from "./SyncStatusLine";
 
@@ -145,6 +146,11 @@ export function StartTummyTime() {
  * shown. It says so before the timer starts, and offers sign-in to keep a log.
  */
 export function TryTummyTime() {
+  const { status, refresh } = useSession();
+  // The sign-in check failed (a server error), so the person may well be signed in. Say that,
+  // and offer a retry: the timer keeps running, and if the check then passes, this screen
+  // becomes the one that saves.
+  const checkFailed = status === "error";
   const { running, seconds } = useTimerView();
   const [message, setMessage] = useState("");
 
@@ -166,7 +172,12 @@ export function TryTummyTime() {
 
   return (
     <Page title={t.title}>
-      <Alert kind="info">{t.notSignedIn}</Alert>
+      <Alert kind="info">{checkFailed ? t.checkFailed : t.notSignedIn}</Alert>
+      {checkFailed ? (
+        <Button variant="secondary" block onClick={() => void refresh()}>
+          {en.states.tryAgain}
+        </Button>
+      ) : null}
       <TimerFace
         seconds={seconds}
         running={running}
@@ -177,9 +188,11 @@ export function TryTummyTime() {
       <p role="status" className="timer-panel__message">
         {message}
       </p>
-      <Link to="/welcome" appearance="secondary" block>
-        {t.signInToSave}
-      </Link>
+      {checkFailed ? null : (
+        <Link to="/welcome" appearance="secondary" block>
+          {t.signInToSave}
+        </Link>
+      )}
     </Page>
   );
 }
