@@ -13,9 +13,9 @@ import { Welcome } from "./pages/account/Welcome";
 import { AddToHomeScreen } from "./pages/AddToHomeScreen";
 import { Home } from "./pages/Home";
 import { NotFound } from "./pages/NotFound";
-import { Placeholder } from "./pages/Placeholder";
+import { About } from "./pages/About";
+import { BabyCrying } from "./pages/BabyCrying";
 import { SessionProvider } from "./session";
-import { en } from "./strings/en";
 
 // The style guide exists only in development. In a production build this is `null`, the
 // dynamic import is removed, and scripts/check-no-styleguide.mjs proves it.
@@ -28,6 +28,12 @@ const LessonsRoute = lazy(() =>
 );
 const LessonRoute = lazy(() =>
   import("./pages/ContentRoutes").then((m) => ({ default: m.LessonRoute })),
+);
+const YourPlanRoute = lazy(() =>
+  import("./pages/ContentRoutes").then((m) => ({ default: m.YourPlanRoute })),
+);
+const GettingStarted = lazy(() =>
+  import("./pages/start/GettingStarted").then((m) => ({ default: m.GettingStarted })),
 );
 
 // The log screens need sign-in and load as their own file, with the sync engine and IndexedDB
@@ -69,10 +75,24 @@ function AppRoutes() {
             </SignedInLazy>
           }
         />
+        <Route path="baby-crying" element={<BabyCrying />} />
         <Route
-          path="baby-crying"
-          element={<Placeholder title={en.babyCrying.title} text={en.babyCrying.placeholder} />}
+          path="getting-started"
+          element={
+            <Suspense fallback={<LoadingState />}>
+              <GettingStarted />
+            </Suspense>
+          }
         />
+        <Route
+          path="your-plan"
+          element={
+            <Suspense fallback={<LoadingState />}>
+              <YourPlanRoute />
+            </Suspense>
+          }
+        />
+        <Route path="about" element={<About />} />
         <Route path="when-to-call" element={<WhenToCallRoute />} />
         <Route
           path="lessons"

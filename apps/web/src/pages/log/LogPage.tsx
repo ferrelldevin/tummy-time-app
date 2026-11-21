@@ -15,7 +15,9 @@ import {
 } from "../../log/format";
 import { useLogSync } from "../../log/useLogSync";
 import { en } from "../../strings/en";
+import { lastSevenDays } from "../../log/week";
 import { SyncStatusLine } from "./SyncStatusLine";
+import { WeekChart } from "./WeekChart";
 
 const t = en.log;
 
@@ -157,6 +159,9 @@ export function LogPage() {
           </Button>
         ) : null}
       </div>
+      {state.ready && state.entries.length > 0 ? (
+        <WeekChart days={lastSevenDays(state.entries, new Date())} />
+      ) : null}
       {body}
     </Page>
   );

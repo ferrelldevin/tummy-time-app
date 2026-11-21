@@ -44,6 +44,20 @@ const textPairs: [string, string][] = [
   ["--color-success", "--color-success-bg"],
   ["--color-on-primary", "--color-primary"],
   ["--color-on-accent", "--color-accent"],
+  ["--color-on-primary", "--color-primary-strong"],
+  ["--color-text", "--color-teal-soft"],
+  ["--color-text", "--color-sun-soft"],
+  ["--color-text", "--color-sage-soft"],
+  ["--color-text", "--color-lilac-soft"],
+  ["--color-text-muted", "--color-teal-soft"],
+  ["--color-text-muted", "--color-sun-soft"],
+  ["--color-text-muted", "--color-sage-soft"],
+  ["--color-text-muted", "--color-lilac-soft"],
+  ["--color-link", "--color-teal-soft"],
+  ["--color-link", "--color-sun-soft"],
+  ["--color-link", "--color-sage-soft"],
+  ["--color-link", "--color-lilac-soft"],
+  ["--color-primary", "--color-teal-soft"],
 ];
 
 // Lines and focus rings are not text, so WCAG asks for 3:1 against what is next to them.

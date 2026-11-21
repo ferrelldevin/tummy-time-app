@@ -80,6 +80,6 @@ export function buildLessonIndex(files: Record<string, string>): LessonIndex {
       problems.push({ file, errors: result.errors });
     }
   }
-  lessons.sort((a, b) => a.id.localeCompare(b.id));
+  lessons.sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
   return { lessons, problems };
 }

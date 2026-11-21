@@ -9,6 +9,7 @@ export {
   APPROVED,
   EMERGENCY_LINE,
   PLACEHOLDER,
+  illustrationNames,
   lessonSchema,
   parseSafetyCardFile,
   safetyCardSchema,

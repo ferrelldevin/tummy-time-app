@@ -85,6 +85,35 @@ const stepSchema = z
     }
   });
 
+/** The drawings the app can show (apps/web/src/components/Illustration.tsx). */
+export const illustrationNames = [
+  "welcome",
+  "mat",
+  "chest",
+  "calm",
+  "path",
+  "idea",
+  "lap",
+] as const;
+
+/**
+ * A quick check (Block 12, drafted early for the client demo). Not a test: there is no score and
+ * nothing is sent anywhere. Exactly one choice is right, and `explain` is shown after any answer.
+ */
+const checkSchema = z
+  .strictObject({
+    question: text,
+    choices: z
+      .array(z.strictObject({ text, right: z.boolean().default(false) }))
+      .min(2, "needs at least 2 choices")
+      .max(4, "can have at most 4 choices"),
+    explain: text,
+  })
+  .refine((c) => c.choices.filter((choice) => choice.right).length === 1, {
+    message: "exactly one choice must have right: true",
+    path: ["choices"],
+  });
+
 /** Raw HTML is not allowed in lesson text. The page also refuses to show it (see Markdown.tsx). */
 const HTML_TAG = /<\/?[a-z!][^>]*>/i;
 
@@ -100,8 +129,14 @@ export const lessonSchema = z
     videoUrl: sameOriginPath.optional(),
     captionsUrl: sameOriginPath.optional(),
     transcript: z.string().trim().optional(),
-    // Questions arrive in Block 12. Until then this stays empty.
-    checks: z.array(z.never()).optional(),
+    checks: z.array(checkSchema).max(3, "can have at most 3 quick checks").default([]),
+    /** Where the lesson sits in a plan: lower comes first. */
+    order: z.number().int().min(0).max(999).default(500),
+    /** About how long the lesson takes to read, in whole minutes. */
+    minutes: z.number().int().min(1).max(30).default(2),
+    illustration: z.enum(illustrationNames).optional(),
+    /** What the video will show, until the client records it. Shown in the video's empty slot. */
+    videoPlanned: z.string().trim().min(1).optional(),
     pathways: z
       .array(z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "use lowercase tags with dashes"))
       .default([]),

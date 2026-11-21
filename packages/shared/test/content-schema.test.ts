@@ -44,10 +44,14 @@ describe("content/ folder", () => {
     expect(result.ok ? [] : result.errors).toEqual([]);
   });
 
-  it("the placeholder lesson and safety card are both still placeholders", () => {
-    const lesson = parseLessonFile("first-lesson.md", read(`${lessonsDir}first-lesson.md`));
+  it("every lesson and the safety card are still placeholders (no clinician sign-off yet)", () => {
+    const files = readdirSync(lessonsDir).filter((f) => f.endsWith(".md"));
+    expect(files.length).toBeGreaterThan(0);
+    for (const file of files) {
+      const lesson = parseLessonFile(file, read(`${lessonsDir}${file}`));
+      expect(lesson.ok && lesson.value.status, file).toBe("placeholder");
+    }
     const card = parseSafetyCardFile(read(`${contentDir}safety-card.json`));
-    expect(lesson.ok && lesson.value.status).toBe("placeholder");
     expect(card.ok && card.value.status).toBe("placeholder");
   });
 });
@@ -182,9 +186,30 @@ describe("other rules", () => {
     expect(errorsOf("---\nid: [unclosed\n---\ntext")[0]).toMatch(/not valid YAML/);
   });
 
-  it("keeps checks empty for now", () => {
-    expect(errorsOf(lessonFile("checks:\n  - question: Q\n")).length).toBe(1);
+  it("accepts a quick check with exactly one right choice", () => {
+    const good =
+      "checks:\n  - question: Q\n    explain: Because.\n    choices:\n" +
+      "      - text: A\n        right: true\n      - text: B\n";
+    expect(errorsOf(lessonFile(good))).toEqual([]);
     expect(errorsOf(lessonFile("checks: []\n"))).toEqual([]);
+  });
+
+  it("refuses a quick check with no right choice, two right choices, or no explanation", () => {
+    const none =
+      "checks:\n  - question: Q\n    explain: E\n    choices:\n      - text: A\n      - text: B\n";
+    const two =
+      "checks:\n  - question: Q\n    explain: E\n    choices:\n" +
+      "      - text: A\n        right: true\n      - text: B\n        right: true\n";
+    const noExplain =
+      "checks:\n  - question: Q\n    choices:\n      - text: A\n        right: true\n      - text: B\n";
+    expect(errorsOf(lessonFile(none)).join()).toMatch(/exactly one choice/);
+    expect(errorsOf(lessonFile(two)).join()).toMatch(/exactly one choice/);
+    expect(errorsOf(lessonFile(noExplain)).join()).toMatch(/explain/);
+  });
+
+  it("refuses an illustration the app cannot draw", () => {
+    expect(errorsOf(lessonFile("illustration: unicorn\n")).length).toBe(1);
+    expect(errorsOf(lessonFile("illustration: mat\n"))).toEqual([]);
   });
 });
 

@@ -11,7 +11,7 @@ const screens = [
   { path: "/baby-crying", title: "Baby crying? Try this", draft: true },
   { path: "/when-to-call", title: "When to call", draft: true },
   { path: "/lessons", title: "Lessons", draft: true },
-  { path: "/lessons/first-lesson", title: "First lesson (placeholder)", draft: true },
+  { path: "/lessons/why-tummy-time", title: "Why tummy time matters", draft: true },
   // The Log needs sign-in (Block 4). Signed out, it shows the Welcome screen. The signed-in Log
   // is checked in account.spec.ts.
   { path: "/log", title: "Welcome", draft: false },
@@ -52,7 +52,7 @@ for (const path of [
   "/baby-crying",
   "/when-to-call",
   "/lessons",
-  "/lessons/first-lesson",
+  "/lessons/why-tummy-time",
   "/log",
 ]) {
   test(`${path} holds at 320 px wide with no sideways scroll`, async ({ page }) => {
@@ -67,7 +67,7 @@ for (const path of [
 
 test("every link and button is at least 44 by 44 px", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 640 });
-  for (const path of ["/", "/when-to-call", "/lessons", "/lessons/first-lesson"]) {
+  for (const path of ["/", "/when-to-call", "/lessons", "/lessons/why-tummy-time"]) {
     await page.goto(path);
     const targets = page.locator("a:visible, button:visible");
     const count = await targets.count();
@@ -114,7 +114,7 @@ test("the lessons list shows exactly the files in content/lessons", async ({ pag
 test("the emergency line shows on When to call and the screen opens in one tap from a lesson", async ({
   page,
 }) => {
-  await page.goto("/lessons/first-lesson");
+  await page.goto("/lessons/why-tummy-time");
   await page.getByRole("navigation").getByRole("link", { name: "When to call" }).click();
   await expect(page.getByTestId("emergency-line")).toHaveText(
     "Trouble breathing or turning blue: call 911.",

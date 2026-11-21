@@ -43,7 +43,7 @@ test("after one visit with signal, the app, a lesson and When to call open with 
   await expect(page.getByTestId("emergency-line")).toHaveText(EMERGENCY_LINE);
 
   // An address typed or opened from a bookmark, straight to a screen, with no signal.
-  await page.goto("/lessons/first-lesson");
+  await page.goto("/lessons/why-tummy-time");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await page.goto("/when-to-call");
   await expect(page.getByTestId("emergency-line")).toHaveText(EMERGENCY_LINE);
@@ -217,7 +217,7 @@ test("after sign-out, nothing from the account is left, and lessons and When to 
   }
 
   await context.setOffline(true);
-  await page.goto("/lessons/first-lesson");
+  await page.goto("/lessons/why-tummy-time");
   await expect(page.getByText("Draft. Not yet reviewed by a clinician.").first()).toBeVisible();
   await page.goto("/when-to-call");
   await expect(page.getByTestId("emergency-line")).toHaveText(EMERGENCY_LINE);

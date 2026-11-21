@@ -16,6 +16,9 @@ const base: Lesson = {
   body: "Sample body text.",
   steps: [{ text: "Sample step one." }, { text: "Sample step two." }],
   pathways: [],
+  checks: [],
+  order: 1,
+  minutes: 2,
   status: "placeholder",
 };
 const approved: Lesson = {

@@ -61,7 +61,7 @@ export default defineConfig(({ mode, isPreview }) => {
               // Never in the dev server: the style guide and hot reload live there.
               devOptions: { enabled: false },
               workbox: {
-                globPatterns: ["**/*.{js,css,html,webmanifest,png,svg}"],
+                globPatterns: ["**/*.{js,css,html,webmanifest,png,svg,woff2}"],
                 // Any screen opened with no signal gets the cached page; the app then routes it.
                 navigateFallback: "/index.html",
                 navigateFallbackDenylist: [/^\/api\//],
