@@ -40,8 +40,12 @@ test("the whole demo click path works, passes axe on every screen, with no error
   await page.getByLabel("None of these, or not sure").check();
   await page.getByRole("button", { name: "Next" }).click();
   await page.getByLabel("My baby cries or fusses").check();
+  const scroller = page.locator(".app-scroll");
+  expect(await scroller.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
   await page.getByRole("button", { name: "See my plan" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Your plan" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Your plan" })).toBeFocused();
+  // A new screen opens at the top, header in sight, even from far down the last one.
+  expect(await scroller.evaluate((el) => el.scrollTop)).toBe(0);
   await expect(page.getByText("About 0 to 2 months")).toBeVisible();
   await noViolations(page);
 
