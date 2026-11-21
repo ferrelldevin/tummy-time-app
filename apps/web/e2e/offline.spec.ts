@@ -35,7 +35,7 @@ test("after one visit with signal, the app, a lesson and When to call open with 
 
   await tapNav(page, "Lessons");
   await expect(page.getByRole("heading", { level: 1, name: "Lessons" })).toBeVisible();
-  await page.locator("ul.lesson-list a").first().click();
+  await page.locator(".lesson-rows a").first().click();
   await expect(page.getByRole("heading", { level: 1 })).not.toHaveText("Lessons");
   await expect(page.getByText("Draft. Not yet reviewed by a clinician.").first()).toBeVisible();
 

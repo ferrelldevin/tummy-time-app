@@ -31,9 +31,11 @@ describe("Home", () => {
     expect(screen.getByRole("link", { name: en.home.startTummyTime }).getAttribute("href")).toBe(
       "/start-tummy-time",
     );
-    expect(screen.getByRole("link", { name: en.home.babyCrying }).getAttribute("href")).toBe(
-      "/baby-crying",
-    );
+    expect(
+      screen
+        .getByRole("link", { name: new RegExp(`^${en.home.babyCrying.replace("?", "\\?")}`) })
+        .getAttribute("href"),
+    ).toBe("/baby-crying");
     await screen.findByText(en.server.reachable);
   });
 
@@ -121,7 +123,7 @@ describe("content screens", () => {
   it("/lessons lists the lesson files and opens one", async () => {
     renderAt("/lessons");
     expect(await screen.findByRole("heading", { level: 1, name: en.lessons.title })).toBeDefined();
-    fireEvent.click(screen.getByRole("link", { name: "Why tummy time matters" }));
+    fireEvent.click(screen.getByRole("link", { name: /^Why tummy time matters/ }));
     const heading = await screen.findByRole("heading", {
       level: 1,
       name: "Why tummy time matters",

@@ -115,7 +115,10 @@ describe("the log", () => {
     await addEntry(10, 300);
     const { container } = renderAt("/log");
     const today = await screen.findByRole("heading", { level: 2, name: en.log.today });
-    const days = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
+    const days = screen
+      .getAllByRole("heading", { level: 2 })
+      .map((h) => h.textContent)
+      .filter((text) => text !== en.week.title);
     expect(days[0]).toBe(en.log.today);
     expect(days).toHaveLength(2);
     const todayList = within(today.closest("section") ?? document.body).getAllByRole("listitem");

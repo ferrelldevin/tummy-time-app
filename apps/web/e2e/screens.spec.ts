@@ -106,7 +106,7 @@ test("the lessons list shows exactly the files in content/lessons", async ({ pag
     .map((f) => /^title:\s*(.+)$/m.exec(readFileSync(resolve(dir, f), "utf8"))?.[1]?.trim());
   expect(titles.length).toBeGreaterThan(0);
   await page.goto("/lessons");
-  const links = page.locator("ul.lesson-list a");
+  const links = page.locator(".lesson-rows a .lesson-row__title");
   await expect(links).toHaveCount(titles.length);
   expect((await links.allInnerTexts()).sort()).toEqual([...titles].sort());
 });

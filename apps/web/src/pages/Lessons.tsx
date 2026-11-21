@@ -1,4 +1,5 @@
 import type { Lesson } from "@tummy/shared";
+import { Alert } from "../components/Alert";
 import { Illustration } from "../components/Illustration";
 import { LessonRow } from "../components/LessonRow";
 import { Link } from "../components/Link";
@@ -28,6 +29,9 @@ export function Lessons({ lessons }: { lessons: readonly Lesson[] }) {
 
   return (
     <Page title={en.lessons.title}>
+      {lessons.some((l) => l.status === "placeholder") ? (
+        <Alert kind="info">{en.draftLabel}</Alert>
+      ) : null}
       {profile ? (
         <section className="stack" aria-labelledby="your-plan">
           <div className="section-head">

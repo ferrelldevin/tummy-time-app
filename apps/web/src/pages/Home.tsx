@@ -85,7 +85,7 @@ export function Home() {
           </Suspense>
         ) : (
           <p>
-            {en.home.todaySignedOut} <Link to="/welcome">{en.account.welcome.signIn}</Link>
+            {en.home.todaySignedOut} <Link to="/welcome">{en.home.todaySignInLink}</Link>
           </p>
         )}
       </section>

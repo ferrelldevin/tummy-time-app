@@ -402,14 +402,6 @@ p {
 }
 
 /* Lessons and the "When to call" card */
-.lesson-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.lesson-list > li + li {
-  margin-top: var(--space-5);
-}
 .draft-note {
   color: var(--color-text-muted);
   margin: 0;
@@ -728,6 +720,7 @@ h2 {
 /* Home */
 .hero-actions {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
 }
 .btn--hero {
@@ -766,7 +759,9 @@ h2 {
 }
 .calm-card__text,
 .next-card__text,
-.lesson-row__text {
+.lesson-row__text,
+.choice__label {
+  overflow-wrap: anywhere;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -785,6 +780,7 @@ h2 {
 }
 .setup-card {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
   padding: 0;
   overflow: hidden;
@@ -797,6 +793,7 @@ h2 {
 }
 .next-card {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
 }
 .next-card__lesson {
@@ -845,6 +842,7 @@ h2 {
   margin: 0;
   padding: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
 }
 .lesson-row {
@@ -910,6 +908,7 @@ h2 {
   margin: 0;
   padding: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
 }
 .question__title {
@@ -1028,6 +1027,7 @@ h2 {
 }
 .video-slot {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   border-radius: var(--radius-2);
   overflow: hidden;
   background: var(--color-surface);
@@ -1065,6 +1065,7 @@ h2 {
   margin: 0;
   padding: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
 }
 .steps > li + li {
@@ -1108,6 +1109,7 @@ h2 {
   background: var(--color-surface);
   box-shadow: var(--shadow-1);
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
 }
 .check__question {
@@ -1192,6 +1194,7 @@ h2 {
 /* "Baby crying?" coach */
 .coach {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
 }
 .coach h2:focus {
@@ -1223,6 +1226,7 @@ h2 {
   margin: 0;
   padding: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-2);
 }
 .idea {

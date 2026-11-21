@@ -13,8 +13,8 @@ function leaves(value: unknown, path = "en"): [string, string][] {
   return [];
 }
 
-// Not caregiver reading: the product name.
-const skip = new Set(["en.appName"]);
+// Not caregiver reading: the product name, and the line that names the university.
+const skip = new Set(["en.appName", "en.about.credits"]);
 const caregiverText = leaves(en).filter(([path]) => !skip.has(path));
 
 /** Makes each string a sentence so labels such as "Home" count as one. */

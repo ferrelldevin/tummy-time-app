@@ -41,6 +41,7 @@ export const en = {
     todayMinutes: "{time} of tummy time today",
     todayNone: "No tummy time logged yet today.",
     todaySignedOut: "Sign in to keep a log of tummy time.",
+    todaySignInLink: "Sign in or make an account",
     weekLink: "See your week",
     nextTitle: "Your next lesson",
     // {done} and {total} are numbers.
@@ -456,7 +457,7 @@ export const en = {
       "No names, emails or birth dates. Your tummy time log is saved with your family code. Your answers and lesson progress stay on this phone.",
     startOver: "Start over on this phone",
     startOverDone: "Your answers and progress on this phone are cleared.",
-    credits: "Built by a team at Old Dominion University.",
+    credits: "Built at Old Dominion University.",
     demoTitle: "This is a demo",
     demoBody:
       "It runs on this device only, with made-up sample data. Nothing you type is sent anywhere.",
