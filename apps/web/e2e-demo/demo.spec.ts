@@ -156,8 +156,12 @@ test("nothing sticks out at 200% text size on a lesson, the timer and the signed
   };
   await nav(page).getByRole("link", { name: "Lessons" }).click();
   await expect(h1).toHaveText("Lessons");
-  await page.getByRole("main").getByRole("link").first().click();
-  await expect(h1).not.toHaveText("Lessons");
+  // The first lesson in the list, not the "Get started" card above it.
+  const lesson = page.locator(".lesson-rows a").first();
+  const title = (await lesson.locator(".lesson-row__title").textContent())?.trim() ?? "";
+  expect(title).not.toBe("");
+  await lesson.click();
+  await expect(h1).toHaveText(title);
   await fits("a lesson");
   await nav(page).getByRole("link", { name: "Home" }).click();
   await page.getByRole("link", { name: "Start tummy time" }).click();
@@ -174,7 +178,9 @@ test("nothing sticks out at 200% text size on a lesson, the timer and the signed
   await expect(page.getByRole("heading", { level: 2, name: "This week" })).toBeVisible();
   await fits("Log, signed in");
   await page.getByRole("link", { name: "Start tummy time" }).click();
-  await expect(page.getByRole("button", { name: "Start" })).toBeVisible();
+  // Signed in, the timer has no "will not be saved" note.
+  await expect(h1).toHaveText("Start tummy time");
+  await expect(page.getByText(/will not be saved/)).toHaveCount(0);
   await fits("timer, signed in");
 });
 
