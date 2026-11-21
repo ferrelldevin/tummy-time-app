@@ -93,7 +93,10 @@ describe("Start tummy time", () => {
     expect(await axeViolations(container)).toEqual([]);
     fireEvent.click(screen.getByRole("button", { name: en.startTummyTime.start }));
     // The retry passes (the stub answers signed in now): the same running timer can be saved.
-    fireEvent.click(screen.getByRole("button", { name: en.states.tryAgain }));
+    const retry = screen.getByRole("button", { name: en.states.tryAgain });
+    fireEvent.click(retry);
+    // One check at a time.
+    expect((retry as HTMLButtonElement).disabled).toBe(true);
     await screen.findByText(en.log.sync.saved);
     expect(screen.getByRole("button", { name: en.startTummyTime.stop })).toBeDefined();
   });

@@ -151,6 +151,16 @@ export function TryTummyTime() {
   // and offer a retry: the timer keeps running, and if the check then passes, this screen
   // becomes the one that saves.
   const checkFailed = status === "error";
+  // One check at a time: on a slow line a tired person may tap Try again more than once.
+  const [checking, setChecking] = useState(false);
+  async function checkAgain() {
+    setChecking(true);
+    try {
+      await refresh();
+    } finally {
+      setChecking(false);
+    }
+  }
   const { running, seconds } = useTimerView();
   const [message, setMessage] = useState("");
 
@@ -174,8 +184,8 @@ export function TryTummyTime() {
     <Page title={t.title}>
       <Alert kind="info">{checkFailed ? t.checkFailed : t.notSignedIn}</Alert>
       {checkFailed ? (
-        <Button variant="secondary" block onClick={() => void refresh()}>
-          {en.states.tryAgain}
+        <Button variant="secondary" block disabled={checking} onClick={() => void checkAgain()}>
+          {checking ? en.states.loading : en.states.tryAgain}
         </Button>
       ) : null}
       <TimerFace
