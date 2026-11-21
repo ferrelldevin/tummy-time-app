@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Lesson } from "@tummy/shared";
 import { Alert } from "../components/Alert";
 import { Icon } from "../components/Icon";
@@ -29,6 +29,12 @@ export function LessonView({ lesson, next }: { lesson: Lesson; next?: Lesson | u
   const { done } = usePlan();
   const isDone = done.includes(lesson.id);
   const [justDone, setJustDone] = useState(false);
+  const doneNote = useRef<HTMLParagraphElement>(null);
+  // The "Mark as done" button goes away when pressed, so focus moves to the sentence that
+  // replaces it instead of falling to the top of the page.
+  useEffect(() => {
+    if (justDone) doneNote.current?.focus();
+  }, [justDone]);
 
   return (
     <Page title={lesson.title}>
@@ -135,14 +141,22 @@ export function LessonView({ lesson, next }: { lesson: Lesson; next?: Lesson | u
       ) : null}
 
       <div className="lesson-end stack">
-        {isDone ? (
-          <p className={justDone ? "done-note done-note--pop" : "done-note"} role="status">
-            <span className="done-note__icon">
-              <Icon name="check" />
-            </span>
-            {en.lessons.markedDone}
-          </p>
-        ) : (
+        {/* Always on the page, so screen readers announce the sentence when it appears. */}
+        <div role="status">
+          {isDone ? (
+            <p
+              ref={doneNote}
+              tabIndex={-1}
+              className={justDone ? "done-note done-note--pop" : "done-note"}
+            >
+              <span className="done-note__icon">
+                <Icon name="check" />
+              </span>
+              {en.lessons.markedDone}
+            </p>
+          ) : null}
+        </div>
+        {isDone ? null : (
           <Button
             block
             large

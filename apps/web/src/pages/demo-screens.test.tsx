@@ -82,9 +82,9 @@ describe("a lesson", () => {
     await screen.findByRole("heading", { level: 1, name: "Short and often" });
     expect(screen.getByRole("heading", { name: en.lessons.videoSoon })).toBeDefined();
     expect(screen.getAllByText(`${en.lessons.careTeamNote}:`).length).toBe(1);
-    fireEvent.click(screen.getByLabelText("One long try, once a day"));
+    fireEvent.click(screen.getByLabelText("One long try, even if your baby cries"));
     expect(screen.getByText(en.lessons.checkNotQuite)).toBeDefined();
-    fireEvent.click(screen.getByLabelText("Short tries, a few times a day"));
+    fireEvent.click(screen.getByLabelText("Short tries, stopping before your baby gets upset"));
     expect(screen.getByText(en.lessons.checkRight)).toBeDefined();
     fireEvent.click(screen.getByRole("button", { name: en.lessons.markDone }));
     expect(screen.getByText(en.lessons.markedDone)).toBeDefined();

@@ -41,7 +41,7 @@ export function QuickCheck({ check, number }: { check: Check; number: number }) 
                 }}
               />
               <span className="check__mark" aria-hidden="true">
-                {chosen ? <Icon name={choice.right ? "check" : "plus"} size={16} /> : null}
+                {chosen ? <Icon name={choice.right ? "check" : "close"} size={16} /> : null}
               </span>
               <span>{choice.text}</span>
             </label>

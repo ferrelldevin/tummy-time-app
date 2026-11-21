@@ -197,6 +197,15 @@ function Breathe({
       >
         <span className="breathe__word">{half === 0 ? "" : label}</span>
       </div>
+      {/* The circle is hidden from screen readers, so its words are read from here as they
+          change. Always on the page, so the first change is announced too. */}
+      <p className="visually-hidden" role="status">
+        {half === 0
+          ? ""
+          : finished
+            ? t.breatheDone
+            : `${breathingIn ? t.breatheCount.replace("{n}", String(Math.ceil(half / 2))) + " " : ""}${label}`}
+      </p>
       {half === 0 ? (
         <Button
           large

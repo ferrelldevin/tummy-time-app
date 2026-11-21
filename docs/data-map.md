@@ -76,7 +76,7 @@ A security record of account events.
 
 | Where | What | Why | Cleared when |
 |---|---|---|---|
-| localStorage `tummy-plan` | "Getting started" answers as ranges only: baby's age range (for example "2 to 4 months"), how many weeks of pregnancy at birth as a range (for example "28 to 33 weeks", or "not sure"), up to three topic flags (spit-up, tubes or wires, head turns), "how is it going" (one of four choices); and the IDs of lessons marked done | Pick and order the lessons, show the corrected-age range | "Start over on this phone" on About, or clearing the browser. **Not cleared by sign-out yet**: decide with this row |
+| localStorage `tummy-plan` | "Getting started" answers as ranges only: baby's age range (for example "2 to 4 months"), how many weeks of pregnancy at birth as a range (for example "28 to 33 weeks", or "not sure"), up to three topic flags (spit-up, tubes or wires, head turns), "how is it going" (one of four choices); and the IDs of lessons marked done | Pick and order the lessons, show the corrected-age range | "Start over on this phone" on About, signing out (here or everywhere), deleting the account, or clearing the browser. Kept when a session ends on its own, because nobody chose that |
 | localStorage `tummy-demo-server` | Demo build only (`docs/demo.md`): the pretend server's accounts, PINs in plain text, sessions and logs, all made up | Lets the demo run with no server | "Reset the demo" on About, or clearing the browser. Never in the real build |
 
 Nothing in these rows is sent to the server. Quick-check answers are not stored at all. No birth date, no due date, no name.

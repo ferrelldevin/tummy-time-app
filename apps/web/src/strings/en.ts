@@ -77,6 +77,8 @@ export const en = {
     breatheBody: "Your baby can feel your calm. Take three slow breaths.",
     breatheIn: "Breathe in",
     breatheOut: "Breathe out",
+    // Read by screen readers as the breaths go. {n} is 1, 2 or 3.
+    breatheCount: "Breath {n} of 3.",
     breatheStart: "Start breathing",
     breatheDone: "Done",
     tryTitle: "Try one thing",

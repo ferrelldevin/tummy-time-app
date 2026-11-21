@@ -21,6 +21,8 @@ checks:
     explain: The care team knows your baby's equipment and can show you a safe way.
 ---
 
+Baby awake, always watched, on a firm, flat surface.
+
 Many babies born early come home with oxygen or a feeding tube. Tummy time may still be possible, with a plan from the care team.
 
 This lesson is a placeholder. The steps here must come from your baby's care team.

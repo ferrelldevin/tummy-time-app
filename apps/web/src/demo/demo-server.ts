@@ -2,6 +2,9 @@ import {
   FAMILY_CODE_ALPHABET,
   FAMILY_CODE_LENGTH,
   LOG_PAGE_SIZE,
+  isAllowedStartTime,
+  logIdSchema,
+  logsQuerySchema,
   normalizeFamilyCode,
   putLogBodySchema,
 } from "@tummy/shared";
@@ -9,14 +12,14 @@ import type { LogEntry } from "@tummy/shared";
 import { sampleWeek } from "./sample-data";
 
 /**
- * DEMO BUILD ONLY (VITE_DEMO=1). A pretend API that lives in the browser, so the demo runs from
+ * DEMO BUILD ONLY (DEMO=1, see docs/demo.md). A pretend API that lives in the browser, so the demo runs from
  * any static host with no server and no database. It answers the same paths, with the same
  * shapes (the shared Zod schemas), as apps/api, so every screen runs its real code.
  *
  * What it is not: secure. PINs are kept in plain text in this browser's localStorage, there is
  * no rate limit and no cookie. That is fine for made-up sample data in a demo and is never
- * shipped in the real build: main.tsx loads this file only when VITE_DEMO is "1", and Vite
- * drops the import from every other build.
+ * shipped in the real build: main.tsx loads this file only when the build-time constant
+ * __DEMO__ is true, and Vite drops the import from every other build.
  */
 
 const STORAGE_KEY = "tummy-demo-server";
@@ -31,16 +34,47 @@ interface DemoAccount {
   entries: LogEntry[];
 }
 
-interface DemoState {
+export interface DemoState {
   accounts: Record<string, DemoAccount>;
   /** Family code this browser is signed in as, or null. Stands in for the session cookie. */
   session: string | null;
+  /** The local day ("YYYY-MM-DD") the sample week was last placed on, so it can move forward. */
+  sampleDay?: string;
+}
+
+function localDay(d: Date): string {
+  return `${String(d.getFullYear())}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Keeps the sample week ending yesterday when someone comes back on a later day: each sample
+ * entry that is still there is moved to its new time and given a new rev, so a phone that
+ * already synced it pulls the change like any other edit. Entries a viewer added stay as they are.
+ */
+export function refreshSampleWeek(s: DemoState, now: Date): DemoState {
+  const today = localDay(now);
+  if (s.sampleDay === today) return s;
+  const account = s.accounts[DEMO_FAMILY_CODE];
+  if (!account) return { ...s, sampleDay: today };
+  let rev = account.rev;
+  const fresh = new Map(sampleWeek(now).map((e) => [e.id, e]));
+  const entries = account.entries.map((e) => {
+    const moved = fresh.get(e.id);
+    if (!moved || e.deletedAt !== null) return e;
+    rev += 1;
+    return { ...e, startedAt: moved.startedAt, rev };
+  });
+  return {
+    ...s,
+    sampleDay: today,
+    accounts: { ...s.accounts, [DEMO_FAMILY_CODE]: { ...account, rev, entries } },
+  };
 }
 
 function load(): DemoState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as DemoState;
+    if (raw) return refreshSampleWeek(JSON.parse(raw) as DemoState, new Date());
   } catch {
     // Storage blocked or unreadable: start fresh in memory.
   }
@@ -52,6 +86,7 @@ function seed(now = new Date()): DemoState {
   return {
     accounts: { [DEMO_FAMILY_CODE]: { pin: DEMO_PIN, rev: entries.length, entries } },
     session: null,
+    sampleDay: localDay(now),
   };
 }
 
@@ -156,23 +191,28 @@ export function handle(method: string, url: URL, init?: RequestInit): Response {
 
   if (path === "/api/logs" && method === "GET") {
     if (!account) return fail("unauthorized", 401, "Please sign in.");
-    const since = Number(url.searchParams.get("since") ?? "0");
-    const newer = account.entries
-      .filter((e) => e.rev > since)
-      .sort((a, b) => a.rev - b.rev)
-      .slice(0, LOG_PAGE_SIZE);
-    const more = account.entries.filter((e) => e.rev > since).length > newer.length;
-    return json({ entries: newer, latestRev: account.rev, more });
+    const query = logsQuerySchema.safeParse(Object.fromEntries(url.searchParams));
+    if (!query.success) return fail("bad_request", 400, "Bad request.");
+    const since = query.data.since ?? 0;
+    const all = account.entries.filter((e) => e.rev > since).sort((a, b) => a.rev - b.rev);
+    const newer = all.slice(0, LOG_PAGE_SIZE);
+    // Same rule as the real API: the highest rev in this page, or `since` when it is empty.
+    const latestRev = newer.at(-1)?.rev ?? since;
+    return json({ entries: newer, latestRev, more: all.length > newer.length });
   }
 
-  const logMatch = /^\/api\/logs\/([0-9a-f-]{36})$/.exec(path);
+  const logMatch = /^\/api\/logs\/([^/]+)$/.exec(path);
   if (logMatch?.[1]) {
     if (!account) return fail("unauthorized", 401, "Please sign in.");
-    const id = logMatch[1];
+    const idCheck = logIdSchema.safeParse(logMatch[1]);
+    if (!idCheck.success) return fail("bad_request", 400, "Bad request.");
+    const id = idCheck.data;
     const existing = account.entries.find((e) => e.id === id);
     if (method === "PUT") {
       const parsed = putLogBodySchema.safeParse(body);
-      if (!parsed.success) return fail("bad_request", 400, "Check the time.");
+      if (!parsed.success || !isAllowedStartTime(new Date(parsed.data.startedAt), new Date())) {
+        return fail("bad_request", 400, "Check the time.");
+      }
       account.rev += 1;
       const entry: LogEntry = { id, ...parsed.data, rev: account.rev, deletedAt: null };
       account.entries = [...account.entries.filter((e) => e.id !== id), entry];

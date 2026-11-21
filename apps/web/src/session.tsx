@@ -10,6 +10,7 @@ import {
 import type { ReactNode } from "react";
 import { meResponseSchema } from "@tummy/shared";
 import { apiCall } from "./api";
+import { planStore } from "./plan/store";
 import {
   localDataExists,
   setUnauthorizedHandler,
@@ -75,6 +76,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setConfirmed(false);
     setStatus("signedOut");
     void wipeLocalData();
+    // A person chose to sign out or delete the account: the "Getting started" answers and
+    // lesson progress go too, so the next person on a shared phone starts clean
+    // (docs/data-map.md). Not on "ended", which the person did not choose.
+    if (reason !== "ended") planStore.clear();
   }, []);
 
   const refresh = useCallback(async () => {

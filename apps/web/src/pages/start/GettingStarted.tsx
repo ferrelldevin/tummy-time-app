@@ -142,7 +142,10 @@ export function GettingStarted() {
                   checked={topics?.includes(c) ?? false}
                   onChange={(on) => {
                     const now = topics ?? [];
-                    setTopics(on ? [...now, c] : now.filter((x) => x !== c));
+                    const next = on ? [...now, c] : now.filter((x) => x !== c);
+                    // Unticking the last topic leaves the question unanswered; it must not
+                    // look like "None of these" was picked.
+                    setTopics(next.length > 0 ? next : null);
                     setMissing(false);
                   }}
                 />

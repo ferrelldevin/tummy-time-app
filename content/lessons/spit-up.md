@@ -9,13 +9,13 @@ illustration: lap
 pathways:
   - spit-up
 steps:
-  - text: Many caregivers wait a while after a feeding before tummy time.
+  - text: Try tummy time when your baby is not just full from a feeding.
   - text: Keep a cloth nearby.
   - text: "CARE TEAM: how long to wait after a feeding. (Placeholder: the care team fills this in.)"
 checks:
   - question: Your baby spits up a lot. When might tummy time go better?
     choices:
-      - text: A while after a feeding
+      - text: Not right after a feeding
         right: true
       - text: Right after a big feeding
     explain: A full tummy can make spit up more likely. Ask the care team how long to wait.

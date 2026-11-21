@@ -18,7 +18,7 @@ checks:
     choices:
       - text: Tell your baby's care team
         right: true
-      - text: Wait and see for a few months
+      - text: Wait and hope it goes away
     explain: Your baby's care team can check it and tell you what may help.
 ---
 

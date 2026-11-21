@@ -80,7 +80,9 @@ export const planStore = {
     } catch {
       // Nothing stored.
     }
-    write(EMPTY);
+    // Not write(): that would store the empty state again, and sign-out must leave nothing.
+    state = EMPTY;
+    for (const l of listeners) l();
   },
   /** Tests only: read again from storage. */
   reload() {

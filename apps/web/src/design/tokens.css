@@ -76,7 +76,9 @@
   --radius-pill: 999rem;
   --shadow-1: 0 1px 2px rgb(16 42 51 / 8%), 0 2px 8px rgb(16 42 51 / 6%);
   --shadow-2: 0 2px 4px rgb(16 42 51 / 8%), 0 10px 28px rgb(16 42 51 / 10%);
-  --target-min: 2.75rem; /* 44 px at the default font size */
+  /* 45 px at the default font size: 1 px over the 44 px minimum, so a target that lands on a
+     fractional pixel position never measures 43.99 px. */
+  --target-min: 2.8125rem;
   --focus-width: 0.1875rem;
   --border-width: 0.125rem;
 

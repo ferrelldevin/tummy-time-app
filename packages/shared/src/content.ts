@@ -98,7 +98,8 @@ export const illustrationNames = [
 
 /**
  * A quick check (Block 12, drafted early for the client demo). Not a test: there is no score and
- * nothing is sent anywhere. Exactly one choice is right, and `explain` is shown after any answer.
+ * nothing is sent anywhere. Exactly one choice is right. `explain` is shown once the right answer is picked; a wrong pick
+ * says "Not quite" and invites another try.
  */
 const checkSchema = z
   .strictObject({
