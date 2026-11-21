@@ -221,6 +221,8 @@ p {
   justify-content: center;
   min-height: var(--target-min);
   min-width: var(--target-min);
+  /* Never wider than its card, even at 200% text size on a small phone. */
+  max-width: 100%;
   padding: var(--space-2) var(--space-5);
   gap: var(--space-2);
   border: var(--border-width) solid var(--color-primary);
