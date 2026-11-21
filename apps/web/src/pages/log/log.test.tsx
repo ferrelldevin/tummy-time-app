@@ -136,6 +136,12 @@ describe("Start tummy time", () => {
     expect(
       await screen.findByText("Saved 5 minutes of tummy time. Every minute counts."),
     ).toBeDefined();
+    // The big clock keeps the time just timed, under "Last time", and the message sits right
+    // above the button, so the result is in sight without scrolling.
+    expect(screen.getByRole("timer").textContent).toContain("5 minutes");
+    expect(screen.getByText(en.startTummyTime.lastLabel)).toBeDefined();
+    const button = screen.getByRole("button", { name: en.startTummyTime.start });
+    expect(button.closest(".timer-panel")?.textContent).toContain("Saved 5 minutes");
     now.mockRestore();
     const sync = await startLogSync();
     expect(sync.getState().entries.map((e) => e.durationSeconds)).toEqual([300]);

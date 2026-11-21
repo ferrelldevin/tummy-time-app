@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { LOG_MAX_DURATION_SECONDS, LOG_MIN_DURATION_SECONDS } from "@tummy/shared";
 import { Alert } from "../../components/Alert";
 import { Button } from "../../components/Button";
@@ -14,13 +14,25 @@ import { SyncStatusLine } from "./SyncStatusLine";
 
 const t = en.startTummyTime;
 
-/** The running time, worked out from the start time and redrawn once a second. */
+/**
+ * The running time, worked out from the start time and redrawn once a second. After a stop it
+ * keeps showing the time that was just timed, so the result is on the big clock, not only in a
+ * sentence that may sit below the fold on a small phone.
+ */
 function useTimerView() {
   const { startedAtMs } = useSyncExternalStore(timer.subscribe, timer.get);
   const [now, setNow] = useState(() => Date.now());
+  const [last, setLast] = useState<number | null>(null);
+  const previousStart = useRef(startedAtMs);
 
   useEffect(() => {
-    if (startedAtMs === null) return;
+    const before = previousStart.current;
+    previousStart.current = startedAtMs;
+    if (startedAtMs === null) {
+      if (before !== null) setLast(elapsedSeconds(before, Date.now()));
+      return;
+    }
+    setLast(null);
     setNow(Date.now());
     // Only redraws the screen. The time itself is always worked out from the start time.
     const handle = setInterval(() => {
@@ -31,38 +43,47 @@ function useTimerView() {
     };
   }, [startedAtMs]);
 
-  const seconds = startedAtMs === null ? 0 : elapsedSeconds(startedAtMs, now);
-  return { running: startedAtMs !== null, seconds };
+  const running = startedAtMs !== null;
+  const seconds = running ? elapsedSeconds(startedAtMs, now) : (last ?? 0);
+  return { running, seconds, stopped: !running && last !== null };
 }
 
 /**
  * One large Start / Stop control and the running time. The time is a role="timer" region with
  * aria-live="off": a screen reader can read it at any moment, but is not interrupted every
- * second. The screens using it announce starting and stopping once, politely.
+ * second. The message under it (role="status") announces starting and stopping once, politely,
+ * and sits right above the button so it is in sight when the button is tapped.
  */
 function TimerFace({
   seconds,
   running,
+  stopped,
   busy,
   stopLabel,
+  message,
   onToggle,
 }: {
   seconds: number;
   running: boolean;
+  stopped: boolean;
   busy: boolean;
   stopLabel: string;
+  message: string;
   onToggle: () => void;
 }) {
   const labelId = useId();
   return (
     <div className="timer-panel">
       <p className="timer-panel__label" id={labelId}>
-        {t.timeLabel}
+        {stopped ? t.lastLabel : t.timeLabel}
       </p>
       <div role="timer" aria-live="off" aria-labelledby={labelId} className="timer-panel__time">
         <span aria-hidden="true">{clockText(seconds)}</span>
         <span className="visually-hidden">{lengthText(seconds)}</span>
       </div>
+      <p role="status" className="timer-panel__message">
+        {message}
+      </p>
       <Button
         block
         className="timer-panel__button"
@@ -79,7 +100,7 @@ function TimerFace({
 /** Signed in: the time is saved to the log when the timer stops. */
 export function StartTummyTime() {
   const { state } = useLogSync();
-  const { running, seconds } = useTimerView();
+  const { running, seconds, stopped } = useTimerView();
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -121,13 +142,12 @@ export function StartTummyTime() {
       <TimerFace
         seconds={seconds}
         running={running}
+        stopped={stopped}
         busy={busy}
         stopLabel={t.stop}
+        message={message}
         onToggle={() => void toggle()}
       />
-      <p role="status" className="timer-panel__message">
-        {message}
-      </p>
       {message === t.tooLong ? (
         <Link to="/log/add" appearance="secondary" block>
           {t.addInstead}
@@ -161,7 +181,7 @@ export function TryTummyTime() {
       setChecking(false);
     }
   }
-  const { running, seconds } = useTimerView();
+  const { running, seconds, stopped } = useTimerView();
   const [message, setMessage] = useState("");
 
   function toggle() {
@@ -191,13 +211,12 @@ export function TryTummyTime() {
       <TimerFace
         seconds={seconds}
         running={running}
+        stopped={stopped}
         busy={false}
         stopLabel={t.stopSignedOut}
+        message={message}
         onToggle={toggle}
       />
-      <p role="status" className="timer-panel__message">
-        {message}
-      </p>
       {checkFailed ? null : (
         <Link to="/welcome" appearance="secondary" block>
           {t.signInToSave}

@@ -63,6 +63,8 @@ export const en = {
     stop: "Stop and save",
     // Shown above the running time. The time itself is in words for screen readers.
     timeLabel: "Time so far",
+    // Shown over the clock after Stop, while it still shows the time just timed.
+    lastLabel: "Last time",
     started: "The timer is running.",
     // {time} is a length such as "5 minutes". "Every minute counts." is from the style guide.
     saved: "Saved {time} of tummy time. Every minute counts.",
