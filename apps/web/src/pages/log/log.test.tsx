@@ -69,11 +69,24 @@ describe("Start tummy time", () => {
     now.mockReturnValue(1_800_000_000_000 + 5 * 60_000 + 400);
     fireEvent.click(screen.getByRole("button", { name: en.startTummyTime.stopSignedOut }));
     expect(
-      await screen.findByText("That was 5 minutes of tummy time. Every minute counts."),
+      await screen.findByText(
+        "That was 5 minutes of tummy time. Every minute counts. It was not saved.",
+      ),
     ).toBeDefined();
     now.mockRestore();
     expect(await databaseNames()).not.toContain(LOCAL_DB_NAME);
     expect(localStorage.length).toBe(0);
+  });
+
+  it("still works when the sign-in check fails, because the timer needs no server", async () => {
+    stubApi({
+      replies: {
+        "GET /api/me": [{ status: 500, body: { error: { code: "internal", message: "Oops." } } }],
+      },
+    });
+    renderAt("/start-tummy-time");
+    await screen.findByRole("heading", { level: 1, name: en.startTummyTime.title });
+    expect(screen.getByRole("button", { name: en.startTummyTime.start })).toBeDefined();
   });
 
   it("signed out, a very short tap is not praised as tummy time", async () => {

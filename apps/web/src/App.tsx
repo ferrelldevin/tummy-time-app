@@ -58,10 +58,16 @@ function SignedInLazy({ children }: { children: ReactNode }) {
   );
 }
 
-/** Like SignedInLazy, but a signed-out person gets `signedOut` instead of the Welcome screen. */
+/**
+ * Like SignedInLazy, but a person who is signed out gets `signedOut` instead of the Welcome
+ * screen. So does one whose sign-in could not be checked ("error"): the timer needs no server,
+ * so a server problem should not stop tummy time.
+ */
 function SignedInOr({ children, signedOut }: { children: ReactNode; signedOut: ReactNode }) {
   const { status } = useSession();
-  if (status === "signedOut") return <Suspense fallback={<LoadingState />}>{signedOut}</Suspense>;
+  if (status === "signedOut" || status === "error") {
+    return <Suspense fallback={<LoadingState />}>{signedOut}</Suspense>;
+  }
   return <SignedInLazy>{children}</SignedInLazy>;
 }
 

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../../App";
 import { LOCAL_DB_NAME, wipeLocalData } from "../../log/local-data";
 import { openLogStore } from "../../log/store";
+import { timer } from "../../log/timer";
 import { planStore } from "../../plan/store";
 import { en } from "../../strings/en";
 import { apiError, stubApi } from "../../test/api-stub";
@@ -311,6 +312,7 @@ describe("Your account", () => {
       replies: { [`POST ${url}`]: [{ status: 200, body: { signedOut: true } }] },
     });
     planStore.saveProfile({ age: "2-4m", born: "28-33", topics: [], going: "some" });
+    timer.start(Date.now());
     const { container } = renderAt("/account");
     await screen.findByRole("heading", { level: 1, name: a.manage.title });
     fireEvent.click(screen.getByRole("button", { name: button }));
@@ -318,6 +320,8 @@ describe("Your account", () => {
     expect(screen.getByText(message)).toBeDefined();
     // The next person on this phone does not see this family's answers (docs/data-map.md).
     expect(planStore.get().profile).toBeNull();
+    // Nor a tummy time timer this family left running.
+    expect(timer.isRunning()).toBe(false);
     expect(api.calls.some((c) => c.url === url && c.method === "POST")).toBe(true);
     expect(await axeViolations(container)).toEqual([]);
     // Signed out now: the header offers Sign in again.

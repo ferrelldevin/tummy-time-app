@@ -10,6 +10,7 @@ import {
 import type { ReactNode } from "react";
 import { meResponseSchema } from "@tummy/shared";
 import { apiCall } from "./api";
+import { timer } from "./log/timer";
 import { planStore } from "./plan/store";
 import {
   localDataExists,
@@ -79,7 +80,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     // A person chose to sign out or delete the account: the "Getting started" answers and
     // lesson progress go too, so the next person on a shared phone starts clean
     // (docs/data-map.md). Not on "ended", which the person did not choose.
-    if (reason !== "ended") planStore.clear();
+    // A running timer stops for the same reason. On "ended" it keeps running: Stop then shows
+    // the time without saving it, which loses less than throwing the time away.
+    if (reason !== "ended") {
+      planStore.clear();
+      timer.stop(Date.now());
+    }
   }, []);
 
   const refresh = useCallback(async () => {

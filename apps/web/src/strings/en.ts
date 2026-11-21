@@ -74,7 +74,7 @@ export const en = {
     notSignedIn: "You are not signed in, so this time will not be saved.",
     stopSignedOut: "Stop",
     // {time} is a length such as "5 minutes". "Every minute counts." is from the style guide.
-    doneNotSaved: "That was {time} of tummy time. Every minute counts.",
+    doneNotSaved: "That was {time} of tummy time. Every minute counts. It was not saved.",
     tooShortSignedOut: "That was very short. Try again when your baby is ready.",
     signInToSave: "Sign in to keep a log",
   },
