@@ -50,7 +50,9 @@ function localDay(d: Date): string {
 function dayAt(day: string): Date | null {
   const [y, m, d] = day.split("-").map(Number);
   if (!y || !m || !d) return null;
-  return new Date(y, m - 1, d, 12);
+  const at = new Date(y, m - 1, d, 12);
+  // A malformed day such as "2026-13-45" would roll over to another date: treat it as unknown.
+  return localDay(at) === day ? at : null;
 }
 
 /**
@@ -69,15 +71,19 @@ export function refreshSampleWeek(s: DemoState, now: Date): DemoState {
   // Where the sample week was laid out last time, so an entry the viewer edited is left alone.
   const before = s.sampleDay ? dayAt(s.sampleDay) : null;
   const laidOut = new Map((before ? sampleWeek(before) : []).map((e) => [e.id, e]));
+  const matchesLayout = (e: LogEntry) => {
+    const was = laidOut.get(e.id);
+    return was?.startedAt === e.startedAt && was.durationSeconds === e.durationSeconds;
+  };
+  // If no live sample entry sits where the last layout says (a demo saved before sampleDay
+  // existed, or the phone's time zone changed since), there is no usable record: move them all.
+  const known = account.entries.some(
+    (e) => fresh.has(e.id) && e.deletedAt === null && matchesLayout(e),
+  );
   const entries = account.entries.map((e) => {
     const moved = fresh.get(e.id);
     if (!moved || e.deletedAt !== null) return e;
-    const was = laidOut.get(e.id);
-    // No record of the last layout (a demo saved before sampleDay existed): move it as before.
-    const untouched =
-      before === null ||
-      (was?.startedAt === e.startedAt && was.durationSeconds === e.durationSeconds);
-    if (!untouched) return e;
+    if (known && !matchesLayout(e)) return e;
     rev += 1;
     return { ...e, startedAt: moved.startedAt, rev };
   });

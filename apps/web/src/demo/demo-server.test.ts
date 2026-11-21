@@ -163,6 +163,31 @@ describe("demo server", () => {
     );
   });
 
+  it("moves the whole week when nothing matches the last layout (time zone changed, bad day)", () => {
+    const day1 = new Date(2026, 0, 10, 12);
+    const day4 = new Date(2026, 0, 13, 12);
+    // Laid out in another time zone: every stored time is five hours off what this phone computes.
+    const shifted = sampleWeek(day1).map((e, i) => ({
+      ...e,
+      startedAt: new Date(Date.parse(e.startedAt) + 5 * 3600_000).toISOString(),
+      rev: i + 1,
+      deletedAt: null,
+    }));
+    for (const sampleDay of ["2026-01-10", "2026-13-45"]) {
+      const before: DemoState = {
+        accounts: {
+          [DEMO_FAMILY_CODE]: { pin: DEMO_PIN, rev: shifted.length, entries: shifted },
+        },
+        session: null,
+        sampleDay,
+      };
+      const account = refreshSampleWeek(before, day4).accounts[DEMO_FAMILY_CODE];
+      expect(account?.entries.map((e) => e.startedAt)).toEqual(
+        sampleWeek(day4).map((e) => e.startedAt),
+      );
+    }
+  });
+
   it("saves a moved sample week at once, so the same revs are never handed out twice", () => {
     const day1 = new Date(2026, 0, 10, 12);
     const entries = sampleWeek(day1).map((e, i) => ({ ...e, rev: i + 1, deletedAt: null }));
