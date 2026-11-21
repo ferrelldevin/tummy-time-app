@@ -10,6 +10,8 @@ export const en = {
     checking: "Checking the server...",
     reachable: "Server is reachable",
     unreachable: "Can't reach the server",
+    // Demo build only (docs/demo.md): there is no server, so say what is true instead.
+    demo: "Demo with sample data. Nothing you type leaves this phone.",
   },
   nav: {
     label: "Main",

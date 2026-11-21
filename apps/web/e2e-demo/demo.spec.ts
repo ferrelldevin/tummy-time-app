@@ -136,6 +136,8 @@ test("the night theme follows the phone's dark mode and passes axe, contrast inc
   await page.goto("/");
   const h1 = page.getByRole("heading", { level: 1 });
   await expect(h1).toBeVisible();
+  // There is no server in the demo, so Home says what is true instead of "Server is reachable".
+  await expect(page.getByText(/^Demo with sample data\./)).toBeVisible();
   const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
   expect(bg).toBe("rgb(15, 24, 27)");
   await noViolations(page);

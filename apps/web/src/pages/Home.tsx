@@ -99,7 +99,7 @@ export function Home() {
         </li>
       </ul>
       <p role="status" className="fine-print">
-        {en.server[server]}
+        {__DEMO__ ? en.server.demo : en.server[server]}
       </p>
     </Page>
   );
