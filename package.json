@@ -17,6 +17,7 @@
     "test": "pnpm build:shared && pnpm -r --workspace-concurrency=1 test",
     "test:e2e": "pnpm build:shared && pnpm --filter @tummy/web test:e2e",
     "build": "pnpm -r build",
+    "build:demo": "pnpm build:shared && node scripts/build-demo.mjs",
     "check:size": "node scripts/check-bundle-size.mjs && node scripts/check-no-styleguide.mjs && node scripts/check-precache.mjs",
     "icons": "node scripts/render-icons.mjs",
     "db:migrate": "pnpm --filter @tummy/api db:migrate",
