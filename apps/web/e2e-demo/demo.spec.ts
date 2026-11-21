@@ -145,6 +145,39 @@ test("nothing scrolls sideways at 200% text size on the main screens", async ({ 
   expect(await sidewaysOverflow(page), "Baby crying?").toBeLessThanOrEqual(0);
 });
 
+test("nothing sticks out at 200% text size on a lesson, the timer and the signed-in screens", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await doubleTextSize(page);
+  const h1 = page.getByRole("heading", { level: 1 });
+  const fits = async (name: string) => {
+    expect(await sidewaysOverflow(page), name).toBeLessThanOrEqual(0);
+  };
+  await nav(page).getByRole("link", { name: "Lessons" }).click();
+  await expect(h1).toHaveText("Lessons");
+  await page.getByRole("main").getByRole("link").first().click();
+  await expect(h1).not.toHaveText("Lessons");
+  await fits("a lesson");
+  await nav(page).getByRole("link", { name: "Home" }).click();
+  await page.getByRole("link", { name: "Start tummy time" }).click();
+  await expect(h1).toHaveText("Start tummy time");
+  await fits("timer, signed out");
+  await nav(page).getByRole("link", { name: "Log" }).click();
+  await page.getByRole("link", { name: "Sign in" }).first().click();
+  await expect(h1).toHaveText("Sign in");
+  await fits("Sign in");
+  await page.getByLabel("Family code").fill("DEMQ 2345 TEST");
+  await page.getByLabel("PIN", { exact: true }).fill("246810");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await nav(page).getByRole("link", { name: "Log" }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "This week" })).toBeVisible();
+  await fits("Log, signed in");
+  await page.getByRole("link", { name: "Start tummy time" }).click();
+  await expect(page.getByRole("button", { name: "Start" })).toBeVisible();
+  await fits("timer, signed in");
+});
+
 test("with reduced motion asked for, nothing animates", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
