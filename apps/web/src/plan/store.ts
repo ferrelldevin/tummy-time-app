@@ -56,6 +56,16 @@ function write(next: PlanState): void {
   for (const l of listeners) l();
 }
 
+// Another tab on this phone changed the plan (for example, signed out there): read it again, so
+// this tab does not write the old answers back.
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.key !== KEY && e.key !== null) return;
+    state = read();
+    for (const l of listeners) l();
+  });
+}
+
 function subscribe(listener: () => void): () => void {
   listeners.add(listener);
   return () => {

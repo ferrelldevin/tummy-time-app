@@ -141,8 +141,9 @@ export function LessonView({ lesson, next }: { lesson: Lesson; next?: Lesson | u
       ) : null}
 
       <div className="lesson-end stack">
-        {/* Always on the page, so screen readers announce the sentence when it appears. */}
-        <div role="status">
+        {/* Focus moves to this sentence when it appears, so a screen reader reads it once. It is
+            not also a live region: that would read it twice. */}
+        <div>
           {isDone ? (
             <p
               ref={doneNote}

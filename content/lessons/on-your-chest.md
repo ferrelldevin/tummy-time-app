@@ -12,11 +12,11 @@ pathways:
   - starting
   - crying
 steps:
+  - text: 'CARE TEAM: the safety line for chest time, and where to sit. The usual line says "on a firm, flat surface", which does not fit a baby on a parent''s chest. (Placeholder: the care team fills this in.)'
   - text: Sit back in a safe, steady spot. Stay awake.
   - text: Lay your baby on your chest, tummy down.
   - text: Talk, sing or smile so your baby lifts their head to see you.
   - text: Keep one hand on your baby's back.
-  - text: "CARE TEAM: how to do chest time safely, and where to sit. (Placeholder: the care team fills this in.)"
 checks:
   - question: Does tummy time on your chest count?
     choices:
@@ -26,7 +26,7 @@ checks:
     explain: Chest time can be a gentle start. You stay awake and keep a hand on your baby.
 ---
 
-Baby awake, always watched, on a firm, flat surface.
+Baby awake, always watched.
 
 Many babies like being close to you. Your face and voice give them a reason to lift their head.
 

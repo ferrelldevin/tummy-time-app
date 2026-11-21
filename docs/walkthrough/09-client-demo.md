@@ -22,7 +22,7 @@ This chapter explains the demo built to show the client: how the same app runs w
 | Week chart | `apps/web/src/pages/log/WeekChart.tsx`, `log/week.ts` | Yes |
 | New look: font, colors, icons, drawings, motion | `apps/web/src/design/`, `components/Icon.tsx`, `Illustration.tsx`, `styles.css` | Yes, with contrast tests and axe |
 | Night theme (follows the phone's dark mode) | `apps/web/src/design/tokens.css` (dark block), `index.html` | Yes: contrast of every pair in both themes (`tokens.test.ts`), axe in dark mode in the demo browser tests |
-| Demo browser tests | `apps/web/e2e-demo/demo.spec.ts` | Yes, 7 tests on 2 phone sizes |
+| Demo browser tests | `apps/web/e2e-demo/demo.spec.ts` | Yes, 4 tests, each run on 2 phone sizes |
 
 ## 2. Why this way
 
@@ -51,7 +51,7 @@ This chapter explains the demo built to show the client: how the same app runs w
 1. **Took "before" screenshots** of the Block 8 app on a phone-sized browser, for the report.
 2. **Added the demo switch.** `DEMO=1` in `vite.config.ts` sets `__DEMO__`, output folder `dist-demo`, relative paths (`base: "./"`), no PWA plugin. Declared `__DEMO__` in `globals.d.ts` so TypeScript knows it.
 3. **Wrote the pretend server.** `handle(method, url, init)` matches the routes the app uses (sign-up, sign-in, session, sign-out, logs sync), checks bodies with the shared schemas, and returns `Response` objects with the same error codes as the real API. `installDemoServer()` wraps `window.fetch`: `/api/*` goes to `handle`, everything else goes to the real `fetch`. A 120 ms delay makes loading states visible, as on a real network.
-4. **Published a first skeleton** to a private link to prove the host would accept it. It refused one file: the YAML library writes the character U+FFFD into the bundle. `scripts/build-demo.mjs` now rewrites it as the escape `�`, which is the same character to JavaScript.
+4. **Published a first skeleton** to a private link to prove the host would accept it. It refused one file: the YAML library writes the character U+FFFD into the bundle. `scripts/build-demo.mjs` now rewrites it as the escape `\uFFFD`, which is the same character to JavaScript.
 5. **Wrote corrected-age math first, with tests.** Age since birth minus weeks born early, in weeks, as `[min, max]`. If even the oldest answer is before the due date, it says so instead of showing a negative age.
 6. **Wrote the plan.** `tagsFor(profile)` turns answers into tags; `planFor(profile, lessons)` keeps the lessons with a matching tag, in file order, and moves a crying lesson to second when the family said "my baby cries".
 7. **Extended the lesson schema** in `packages/shared/src/content.ts`: `checks` (up to 3; 2 to 4 choices each; exactly one right; an explanation), `order`, `minutes`, `illustration`, `videoPlanned`. Then wrote 10 draft lessons.

@@ -32,26 +32,22 @@ function Baby({ x, y, tone, lift = 0 }: { x: number; y: number; tone: number; li
       <ellipse cx={x - 46} cy={y + 4} rx={15} ry={10} fill="var(--color-ill-cloth)" />
       <ellipse cx={x} cy={y} rx={44} ry={16} fill="var(--color-ill-cloth)" />
       <ellipse cx={x + 40} cy={y + 10} rx={13} ry={5} fill={s} />
-      {/* The head, with its hair, eye and mouth: it bobs up a little when motion is allowed,
-          the way a baby practises lifting its head (styles.css, .ill-head). */}
-      <g className="ill-head">
-        <circle cx={x + 56} cy={y - 10 - lift} r={19} fill={s} />
-        <path
-          d={svg`M${x + 42} ${y - 22 - lift}q8-10 22-6`}
-          stroke="var(--color-ill-hair)"
-          strokeWidth={4}
-          strokeLinecap="round"
-          fill="none"
-        />
-        <circle cx={x + 66} cy={y - 12 - lift} r={2.2} fill="var(--color-ill-hair)" />
-        <path
-          d={svg`M${x + 63} ${y - 3 - lift}q4 3 8 0`}
-          stroke="var(--color-ill-hair)"
-          strokeWidth={2}
-          strokeLinecap="round"
-          fill="none"
-        />
-      </g>
+      <circle cx={x + 56} cy={y - 10 - lift} r={19} fill={s} />
+      <path
+        d={svg`M${x + 42} ${y - 22 - lift}q8-10 22-6`}
+        stroke="var(--color-ill-hair)"
+        strokeWidth={4}
+        strokeLinecap="round"
+        fill="none"
+      />
+      <circle cx={x + 66} cy={y - 12 - lift} r={2.2} fill="var(--color-ill-hair)" />
+      <path
+        d={svg`M${x + 63} ${y - 3 - lift}q4 3 8 0`}
+        stroke="var(--color-ill-hair)"
+        strokeWidth={2}
+        strokeLinecap="round"
+        fill="none"
+      />
     </g>
   );
 }
@@ -118,9 +114,6 @@ function Sparkles({ points }: { points: [number, number][] }) {
       {points.map(([x, y], i) => (
         <path
           key={i}
-          className="ill-sparkle"
-          // Each one twinkles a little after the last (styles.css, .ill-sparkle).
-          style={{ animationDelay: `${String(i * 0.7)}s` }}
           d={svg`M${x} ${y - 6}l1.8 4.2 4.2 1.8-4.2 1.8-1.8 4.2-1.8-4.2-4.2-1.8 4.2-1.8Z`}
         />
       ))}
@@ -226,13 +219,7 @@ const scenes: Record<Scene, { bg: string; draw: (tone: number) => ReactNode }> =
         <circle cx={272} cy={46} r={18} fill="var(--color-lilac-soft)" />
         <path d="M100 200c0-44 26-70 60-70s60 26 60 70Z" fill="var(--color-ill-cloth)" />
         <Face cx={160} cy={98} r={30} tone={tone} look="front" closed />
-        <g
-          className="ill-breath"
-          stroke="var(--color-surface)"
-          strokeWidth={4}
-          strokeLinecap="round"
-          fill="none"
-        >
+        <g stroke="var(--color-surface)" strokeWidth={4} strokeLinecap="round" fill="none">
           <path d="M40 92q20-14 40 0t40 0" />
           <path d="M200 132q20-14 40 0t40 0" />
         </g>

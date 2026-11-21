@@ -755,7 +755,9 @@ h2 {
   flex: none;
   border-radius: 50%;
   background: var(--color-surface);
-  color: var(--color-accent);
+  /* --color-danger, not --color-accent: the same red by day, and a lighter red at night, where
+     the accent red is too dark to see on the card. */
+  color: var(--color-danger);
 }
 .calm-card__text,
 .next-card__text,
@@ -1213,8 +1215,8 @@ h2 {
   border-radius: 50%;
   background: var(--color-surface);
   box-shadow:
-    0 0 0 1rem rgb(255 255 255 / 45%),
-    0 0 0 2rem rgb(255 255 255 / 25%);
+    0 0 0 1rem color-mix(in srgb, var(--color-surface) 45%, transparent),
+    0 0 0 2rem color-mix(in srgb, var(--color-surface) 25%, transparent);
 }
 .breathe__word {
   font-size: var(--font-size-h3);
@@ -1379,38 +1381,12 @@ h2 {
   .breathe__circle--out {
     transform: scale(0.86);
   }
-  .ill-breath {
-    animation: drift 4s ease-in-out infinite alternate;
-  }
-  /* The drawings breathe a little: the baby's head lifts and settles, the sparkles twinkle.
-     Slow and small on purpose; a calm screen for a stressed parent. */
-  .ill-head {
-    transform-box: fill-box;
-    transform-origin: 30% 90%;
-    animation: head-lift 3.2s ease-in-out infinite alternate;
-  }
-  .ill-sparkle {
-    transform-box: fill-box;
-    transform-origin: center;
-    animation: twinkle 2.4s ease-in-out infinite alternate both;
-  }
-}
-@keyframes head-lift {
-  from {
-    transform: rotate(4deg) translateY(2px);
-  }
-  to {
-    transform: rotate(-3deg) translateY(-2px);
-  }
-}
-@keyframes twinkle {
-  from {
-    opacity: 0.35;
-    transform: scale(0.7);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1.1);
+  /* The drawings settle in once when a screen opens, then stay still, so nothing keeps moving
+     beside text someone is reading (WCAG 2.2.2, Pause, Stop, Hide). Looping motion inside the
+     drawings was tried and taken out: in Chromium, SVG parts whose finite animations had ended
+     stalled the page for seconds (found by the demo browser tests). */
+  .illustration {
+    animation: settle 700ms var(--ease-out) both;
   }
 }
 @keyframes page-in {
@@ -1441,11 +1417,13 @@ h2 {
     transform: scaleY(1);
   }
 }
-@keyframes drift {
+@keyframes settle {
   from {
-    transform: translateX(-6px);
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.97);
   }
   to {
-    transform: translateX(6px);
+    opacity: 1;
+    transform: none;
   }
 }

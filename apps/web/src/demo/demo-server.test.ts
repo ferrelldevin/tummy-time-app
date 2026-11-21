@@ -3,6 +3,7 @@ import {
   DEMO_FAMILY_CODE,
   DEMO_PIN,
   handle,
+  loadState,
   refreshSampleWeek,
   resetDemoServer,
 } from "./demo-server";
@@ -116,5 +117,23 @@ describe("demo server", () => {
     expect(account?.rev).toBe(added.rev + entries.length);
     // Same day again: nothing moves.
     expect(refreshSampleWeek(after, day4)).toBe(after);
+  });
+
+  it("saves a moved sample week at once, so the same revs are never handed out twice", () => {
+    const day1 = new Date(2026, 0, 10, 12);
+    const entries = sampleWeek(day1).map((e, i) => ({ ...e, rev: i + 1, deletedAt: null }));
+    const old: DemoState = {
+      accounts: { [DEMO_FAMILY_CODE]: { pin: DEMO_PIN, rev: entries.length, entries } },
+      session: DEMO_FAMILY_CODE,
+      sampleDay: "2026-01-10",
+    };
+    localStorage.setItem("tummy-demo-server", JSON.stringify(old));
+    const day2 = loadState(new Date(2026, 0, 11, 12));
+    const saved = JSON.parse(localStorage.getItem("tummy-demo-server") ?? "{}") as DemoState;
+    expect(saved.sampleDay).toBe("2026-01-11");
+    expect(saved.accounts[DEMO_FAMILY_CODE]?.rev).toBe(day2.accounts[DEMO_FAMILY_CODE]?.rev);
+    // The next day starts from the saved revs, not from day 1's.
+    const day3 = loadState(new Date(2026, 0, 12, 12));
+    expect(day3.accounts[DEMO_FAMILY_CODE]?.rev).toBe(entries.length * 3);
   });
 });

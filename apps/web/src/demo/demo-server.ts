@@ -71,14 +71,24 @@ export function refreshSampleWeek(s: DemoState, now: Date): DemoState {
   };
 }
 
-function load(): DemoState {
+/**
+ * Reads the saved demo, moving the sample week forward if the day changed. A moved week is saved
+ * at once: otherwise the next visit would hand out the same rev numbers again with other times,
+ * and a phone that already pulled them would never see the change. Exported for its unit test.
+ */
+export function loadState(now = new Date()): DemoState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return refreshSampleWeek(JSON.parse(raw) as DemoState, new Date());
+    if (raw) {
+      const saved = JSON.parse(raw) as DemoState;
+      const fresh = refreshSampleWeek(saved, now);
+      if (fresh !== saved) localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
+      return fresh;
+    }
   } catch {
     // Storage blocked or unreadable: start fresh in memory.
   }
-  return seed();
+  return seed(now);
 }
 
 function seed(now = new Date()): DemoState {
@@ -90,7 +100,7 @@ function seed(now = new Date()): DemoState {
   };
 }
 
-let state: DemoState = load();
+let state: DemoState = loadState();
 
 function save(): void {
   try {

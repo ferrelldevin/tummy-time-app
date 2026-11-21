@@ -33,7 +33,7 @@ pnpm test:e2e:demo     # set PW_CHROMIUM_PATH if Chromium is installed somewhere
 | Banner | Only on the test site | Always: "Test site. Sample data." |
 | File paths | `/` | `./` (works from any folder) |
 
-The switch is the `DEMO=1` environment variable, which `apps/web/vite.config.ts` turns into the constant `__DEMO__`. Every demo-only line sits behind `if (__DEMO__)` and is loaded with `import()`, so the real build drops it. To prove it:
+The switch is the `DEMO=1` environment variable, which `apps/web/vite.config.ts` turns into the constant `__DEMO__`. The pretend server, the sample data and the demo panel sit behind `if (__DEMO__)` and are loaded with `import()`, so the real build drops them. Two small things do stay in the real build, unused: the demo's sentences in `strings/en.ts` and one `__DEMO__ ?` choice on Home. To prove it:
 
 ```bash
 pnpm --filter @tummy/web build && grep -rl "tummy-demo-server" apps/web/dist || echo "no demo code in the real build"
