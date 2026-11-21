@@ -167,6 +167,24 @@ test("nothing sticks out at 200% text size on a lesson, the timer and the signed
   await page.getByRole("link", { name: "Start tummy time" }).click();
   await expect(h1).toHaveText("Start tummy time");
   await fits("timer, signed out");
+  // With a plan, Home shows the next lesson card beside its drawing.
+  await nav(page).getByRole("link", { name: "Home" }).click();
+  await page.getByRole("link", { name: "Get started" }).first().click();
+  for (const answer of [
+    "2 to 4 months",
+    "Early (28 to 33 weeks)",
+    "None of these, or not sure",
+    "My baby cries or fusses",
+  ]) {
+    await page.getByLabel(answer).check();
+    await fits(answer);
+    await page.getByRole("button", { name: /^(Next|See my plan)$/ }).click();
+  }
+  await expect(h1).toHaveText("Your plan");
+  await fits("Your plan");
+  await nav(page).getByRole("link", { name: "Home" }).click();
+  await expect(page.getByRole("heading", { level: 2, name: "Your next lesson" })).toBeVisible();
+  await fits("Home with a plan");
   await nav(page).getByRole("link", { name: "Log" }).click();
   await page.getByRole("link", { name: "Sign in" }).first().click();
   await expect(h1).toHaveText("Sign in");

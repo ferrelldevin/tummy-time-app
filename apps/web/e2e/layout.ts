@@ -17,6 +17,8 @@ export function sidewaysOverflow(page: Page): Promise<number> {
     const width = document.documentElement.clientWidth;
     let stickOut = 0;
     for (const el of document.body.querySelectorAll("*")) {
+      // Shapes inside a drawing are clipped by the drawing's own box; measure the <svg> itself.
+      if (el.parentElement?.closest("svg")) continue;
       const box = el.getBoundingClientRect();
       if (box.width === 0 || box.height === 0) continue;
       stickOut = Math.max(stickOut, Math.round(box.right - width), Math.round(-box.left));
