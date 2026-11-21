@@ -39,9 +39,6 @@ test("the whole demo click path works, passes axe on every screen, with no error
   await page.getByRole("button", { name: "Next" }).click();
   await page.getByLabel("None of these, or not sure").check();
   await page.getByRole("button", { name: "Next" }).click();
-  // Each question opens at the top, with its progress line in sight.
-  await expect(page.getByText("Question 4 of 4")).toBeInViewport();
-  expect(await page.locator(".app-scroll").evaluate((el) => el.scrollTop)).toBe(0);
   await page.getByLabel("My baby cries or fusses").check();
   const scroller = page.locator(".app-scroll");
   await scroller.evaluate((el) => {
@@ -181,4 +178,27 @@ test("the night theme follows the phone's dark mode and passes axe, contrast inc
   await page.getByRole("link", { name: /^Baby crying\? Try this/ }).click();
   await expect(h1).toHaveText("Baby crying? Try this");
   await noViolations(page);
+});
+
+test("each Getting started question opens at the top, from far down the last one", async ({
+  page,
+}) => {
+  // A short screen, so every question is taller than the screen and the check means something.
+  await page.setViewportSize({ width: 320, height: 480 });
+  await page.goto("/");
+  await page.getByRole("link", { name: "Get started" }).click();
+  const scroller = page.locator(".app-scroll");
+  for (const [answer, next] of [
+    ["2 to 4 months", "Question 2 of 4"],
+    ["Early (28 to 33 weeks)", "Question 3 of 4"],
+  ] as const) {
+    await page.getByLabel(answer).check();
+    await scroller.evaluate((el) => {
+      el.scrollTo(0, el.scrollHeight);
+    });
+    expect(await scroller.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+    await page.getByRole("button", { name: "Next" }).click();
+    await expect(page.getByText(next)).toBeInViewport();
+    expect(await scroller.evaluate((el) => el.scrollTop)).toBe(0);
+  }
 });
